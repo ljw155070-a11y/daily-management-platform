@@ -28,6 +28,9 @@ public class TravelPlace {
     @Column(name = "REVIEW", length = 4000)
     private String review;
 
+    @Column(name = "IMAGE_URL", length = 500)
+    private String imageUrl;
+
     @Column(name = "LATITUDE")
     private Double latitude;
 
@@ -61,6 +64,9 @@ public class TravelPlace {
 
     public String getReview()                     { return review; }
     public void setReview(String review)          { this.review = review; }
+
+    public String getImageUrl()                   { return imageUrl; }
+    public void setImageUrl(String imageUrl)      { this.imageUrl = imageUrl; }
 
     public Double getLatitude()                   { return latitude; }
     public void setLatitude(Double latitude)      { this.latitude = latitude; }

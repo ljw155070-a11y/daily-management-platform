@@ -10,6 +10,9 @@ import org.locationtech.proj4j.ProjCoordinate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -34,6 +37,7 @@ public class SgisService {
     private String cachedToken = null;
     private Instant tokenExpiry = Instant.MIN;
     private String cachedBoundary = null;
+    private String cachedCityBoundary = null;
 
     private static final CoordinateTransform UTMK_TO_WGS84;
     static {
@@ -140,5 +144,64 @@ public class SgisService {
 
         cachedBoundary = sb.toString();
         return cachedBoundary;
+    }
+
+    public String getCityBoundariesAsGeoJson() throws Exception {
+        if (cachedCityBoundary != null) return cachedCityBoundary;
+
+        String token = getAccessToken();
+
+        // 1단계: 시/도 목록을 가져와 각 시/도의 실제 adm_cd 코드를 수집
+        String provUrl = "https://sgisapi.mods.go.kr/OpenAPI3/boundary/hadmarea.geojson"
+                + "?accessToken=" + token + "&year=2024&adm_cd=0&low_search=1";
+        HttpRequest provReq = HttpRequest.newBuilder().uri(URI.create(provUrl))
+                .timeout(Duration.ofSeconds(15)).GET().build();
+        HttpResponse<String> provRes = httpClient.send(provReq, HttpResponse.BodyHandlers.ofString());
+
+        JsonNode provRoot = objectMapper.readTree(provRes.body());
+        List<String> provinceCodes = new ArrayList<>();
+        for (JsonNode f : provRoot.path("features")) {
+            String admCd = f.path("properties").path("adm_cd").asText();
+            if (admCd != null && !admCd.isBlank()) {
+                provinceCodes.add(admCd);
+            }
+        }
+
+        // 2단계: 각 시/도 코드로 하위 시/군/구 경계를 수집
+        List<String> featureList = new ArrayList<>();
+        for (String code : provinceCodes) {
+            String url = "https://sgisapi.mods.go.kr/OpenAPI3/boundary/hadmarea.geojson"
+                    + "?accessToken=" + token
+                    + "&year=2024&adm_cd=" + code + "&low_search=1";
+            try {
+                HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url))
+                        .timeout(Duration.ofSeconds(15)).GET().build();
+                HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+
+                JsonNode root = objectMapper.readTree(res.body());
+                JsonNode features = root.path("features");
+
+                for (int i = 0; i < features.size(); i++) {
+                    JsonNode f = features.get(i);
+                    String admNm = f.path("properties").path("adm_nm").asText()
+                                    .replace("\\", "\\\\").replace("\"", "\\\"");
+                    JsonNode geometry = f.path("geometry");
+                    String geoType = geometry.path("type").asText();
+                    JsonNode coordinates = geometry.path("coordinates");
+
+                    featureList.add(
+                        "{\"type\":\"Feature\",\"properties\":{\"name\":\"" + admNm + "\"}," +
+                        "\"geometry\":{\"type\":\"" + geoType + "\",\"coordinates\":" +
+                        convertCoordinates(coordinates, geoType) + "}}"
+                    );
+                }
+            } catch (Exception ignored) {
+                // 일부 지역 실패 시 나머지는 계속 진행
+            }
+        }
+
+        cachedCityBoundary = "{\"type\":\"FeatureCollection\",\"features\":["
+                + String.join(",", featureList) + "]}";
+        return cachedCityBoundary;
     }
 }

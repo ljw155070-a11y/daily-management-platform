@@ -64,38 +64,38 @@
 
             <aside id="tb-drawer" aria-hidden="true" aria-labelledby="tb-title">
                 <div class="tb-head">
-                    <span id="tb-title">Task Board</span>
-                    <button type="button" class="tb-close" onclick="tbClose()" aria-label="Close task board">&times;</button>
+                    <span id="tb-title">작업 현황판</span>
+                    <button type="button" class="tb-close" onclick="tbClose()" aria-label="작업 현황판 닫기">&times;</button>
                 </div>
 
                 <div class="tb-add">
-                    <input id="tb-input" class="tb-input" placeholder="Add a task for this page" maxlength="80"
+                    <input id="tb-input" class="tb-input" placeholder="현재 페이지 작업을 입력해 주세요" maxlength="80"
                            onkeydown="if(event.key === 'Enter') tbAdd()">
-                    <select id="tb-sel" class="tb-sel" aria-label="Task status">
-                        <option value="todo">Planned</option>
-                        <option value="doing">Doing</option>
-                        <option value="done">Done</option>
+                    <select id="tb-sel" class="tb-sel" aria-label="작업 상태">
+                        <option value="todo">예정</option>
+                        <option value="doing">진행 중</option>
+                        <option value="done">완료</option>
                     </select>
-                    <button type="button" class="tb-btn-add" onclick="tbAdd()">Add</button>
+                    <button type="button" class="tb-btn-add" onclick="tbAdd()">추가</button>
                 </div>
 
                 <div class="tb-filters">
-                    <button type="button" class="tb-filter active" data-filter="all" onclick="tbFilter(this)">All</button>
-                    <button type="button" class="tb-filter" data-filter="todo" onclick="tbFilter(this)">Planned</button>
-                    <button type="button" class="tb-filter" data-filter="doing" onclick="tbFilter(this)">Doing</button>
-                    <button type="button" class="tb-filter" data-filter="done" onclick="tbFilter(this)">Done</button>
+                    <button type="button" class="tb-filter active" data-filter="all" onclick="tbFilter(this)">전체</button>
+                    <button type="button" class="tb-filter" data-filter="todo" onclick="tbFilter(this)">예정</button>
+                    <button type="button" class="tb-filter" data-filter="doing" onclick="tbFilter(this)">진행 중</button>
+                    <button type="button" class="tb-filter" data-filter="done" onclick="tbFilter(this)">완료</button>
                 </div>
 
                 <ul id="tb-list" class="tb-list"></ul>
 
                 <div class="tb-footer">
                     <span id="tb-count" class="tb-count-txt"></span>
-                    <button type="button" class="tb-btn-clear" onclick="tbClearDone()">Clear done</button>
+                    <button type="button" class="tb-btn-clear" onclick="tbClearDone()">완료 항목 지우기</button>
                 </div>
             </aside>
 
-            <button id="tb-toggle" type="button" onclick="tbOpen()" title="Open task board" aria-label="Open task board">
-                Tasks
+            <button id="tb-toggle" type="button" onclick="tbOpen()" title="작업 현황판 열기" aria-label="작업 현황판 열기">
+                <span>작업</span>
                 <span class="tb-badge" id="tb-badge" style="display:none"></span>
             </button>
         </div>
@@ -123,9 +123,7 @@
             gap: 4px;
         }
 
-        #tb-toggle:hover {
-            background: #3a5ce5;
-        }
+        #tb-toggle:hover { background: #3a5ce5; }
 
         .tb-badge {
             background: #ef4444;
@@ -163,9 +161,7 @@
             border-radius: 16px 0 0 16px;
         }
 
-        #tb-drawer.open {
-            right: 0;
-        }
+        #tb-drawer.open { right: 0; }
 
         .tb-head {
             display: flex;
@@ -188,9 +184,7 @@
             border-radius: 4px;
         }
 
-        .tb-close:hover {
-            background: #f1f5f9;
-        }
+        .tb-close:hover { background: #f1f5f9; }
 
         .tb-add {
             display: flex;
@@ -208,9 +202,7 @@
             outline: none;
         }
 
-        .tb-input:focus {
-            border-color: #4a6cf7;
-        }
+        .tb-input:focus { border-color: #4a6cf7; }
 
         .tb-sel {
             border: 1px solid #e2e8f0;
@@ -233,9 +225,7 @@
             cursor: pointer;
         }
 
-        .tb-btn-add:hover {
-            background: #3a5ce5;
-        }
+        .tb-btn-add:hover { background: #3a5ce5; }
 
         .tb-filters {
             display: flex;
@@ -255,8 +245,7 @@
             transition: all 0.15s;
         }
 
-        .tb-filter.active,
-        .tb-filter:hover {
+        .tb-filter.active, .tb-filter:hover {
             background: #4a6cf7;
             color: #fff;
             border-color: #4a6cf7;
@@ -282,9 +271,7 @@
             transition: background 0.15s;
         }
 
-        .tb-item:hover {
-            background: #f1f5f9;
-        }
+        .tb-item:hover { background: #f1f5f9; }
 
         .tb-item-status {
             font-size: 12px;
@@ -316,9 +303,7 @@
             white-space: nowrap;
         }
 
-        .tb-item-change:hover {
-            background: #e2e8f0;
-        }
+        .tb-item-change:hover { background: #e2e8f0; }
 
         .tb-item-del {
             background: none;
@@ -330,9 +315,7 @@
             line-height: 1;
         }
 
-        .tb-item-del:hover {
-            color: #ef4444;
-        }
+        .tb-item-del:hover { color: #ef4444; }
 
         .tb-empty {
             text-align: center;
@@ -350,10 +333,7 @@
             border-top: 1px solid #e2e8f0;
         }
 
-        .tb-count-txt {
-            font-size: 12px;
-            color: #94a3b8;
-        }
+        .tb-count-txt { font-size: 12px; color: #94a3b8; }
 
         .tb-btn-clear {
             background: none;
@@ -397,22 +377,15 @@
                 width: min(100%, 360px);
             }
 
-            .tb-add {
-                flex-wrap: wrap;
-            }
-
-            .tb-input {
-                min-width: 100%;
-            }
+            .tb-add { flex-wrap: wrap; }
+            .tb-input { min-width: 100%; }
 
             .tb-footer {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            #tb-root[data-active-tab='travel'] #tb-toggle {
-                right: 16px;
-            }
+            #tb-root[data-active-tab='travel'] #tb-toggle { right: 16px; }
         }
         </style>
 
@@ -422,15 +395,16 @@
                 csrfHeader: /*[[${_csrf.headerName}]]*/ '',
                 csrfToken: /*[[${_csrf.token}]]*/ '',
                 labels: {
-                    todo: 'Planned',
-                    doing: 'Doing',
-                    done: 'Done',
-                    empty: 'No tasks added for this page.',
-                    count: 'Total {total} · Open {todo}'
+                    todo: '예정',
+                    doing: '진행 중',
+                    done: '완료',
+                    empty: '이 페이지에는 아직 등록된 작업이 없습니다.',
+                    count: '전체 {total}개 · 미완료 {todo}개',
+                    deleteLabel: '작업 삭제'
                 }
             };
         </script>
-        <script th:src="@{/js/task-board.js(v=2)}"></script>
+        <script th:src="@{/js/task-board.js(v=4)}"></script>
     </th:block>
 </th:block>
 </html>

@@ -13,9 +13,11 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class TravelPlaceService {
 
     private final TravelPlaceRepository repository;
+    private final TravelPlaceImageStorageService imageStorageService;
 
-    public TravelPlaceService(TravelPlaceRepository repository) {
+    public TravelPlaceService(TravelPlaceRepository repository, TravelPlaceImageStorageService imageStorageService) {
         this.repository = repository;
+        this.imageStorageService = imageStorageService;
     }
 
     public List<TravelPlaceDto> getPlacesByUser(String userId) {
@@ -26,28 +28,33 @@ public class TravelPlaceService {
     }
 
     @Transactional
-    public TravelPlaceDto save(TravelPlaceSaveRequest req, String userId) {
+    public TravelPlaceDto save(TravelPlaceFormRequest req, String userId) {
         TravelPlace place = new TravelPlace();
         place.setUserId(userId);
-        place.setCategory(req.category());
-        place.setPlaceName(req.placeName());
-        place.setAddress(req.address());
-        place.setReview(req.review());
-        place.setLatitude(req.latitude());
-        place.setLongitude(req.longitude());
+        place.setCategory(req.getCategory());
+        place.setPlaceName(req.getPlaceName());
+        place.setAddress(req.getAddress());
+        place.setReview(req.getReview());
+        place.setLatitude(req.getLatitude());
+        place.setLongitude(req.getLongitude());
+        place.setImageUrl(imageStorageService.store(req.getImageFile()));
         return TravelPlaceDto.from(repository.save(place));
     }
 
     @Transactional
-    public TravelPlaceDto update(Long id, TravelPlaceSaveRequest req, String userId) {
+    public TravelPlaceDto update(Long id, TravelPlaceFormRequest req, String userId) {
         TravelPlace place = repository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Travel place not found."));
-        place.setCategory(req.category());
-        place.setPlaceName(req.placeName());
-        place.setAddress(req.address());
-        place.setReview(req.review());
-        place.setLatitude(req.latitude());
-        place.setLongitude(req.longitude());
+        place.setCategory(req.getCategory());
+        place.setPlaceName(req.getPlaceName());
+        place.setAddress(req.getAddress());
+        place.setReview(req.getReview());
+        place.setLatitude(req.getLatitude());
+        place.setLongitude(req.getLongitude());
+        if (req.getImageFile() != null && !req.getImageFile().isEmpty()) {
+            imageStorageService.deleteIfPresent(place.getImageUrl());
+            place.setImageUrl(imageStorageService.store(req.getImageFile()));
+        }
         return TravelPlaceDto.from(repository.save(place));
     }
 
@@ -55,6 +62,7 @@ public class TravelPlaceService {
     public void delete(Long id, String userId) {
         TravelPlace place = repository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Travel place not found."));
+        imageStorageService.deleteIfPresent(place.getImageUrl());
         repository.delete(place);
     }
 }

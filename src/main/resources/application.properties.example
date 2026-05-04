@@ -23,3 +23,6 @@ spring.web.resources.cache.period=0
 # Kakao Maps JavaScript API Key
 # https://developers.kakao.com 에서 발급
 kakao.maps.api-key=your_kakao_maps_api_key
+
+# Korea Tourism Organization TourAPI service key
+tourapi.service-key=your_tourapi_service_key

@@ -9,6 +9,7 @@ public record TravelPlaceDto(
         String placeName,
         String address,
         String review,
+        String imageUrl,
         Double latitude,
         Double longitude,
         String createdAt
@@ -23,6 +24,7 @@ public record TravelPlaceDto(
                 p.getPlaceName(),
                 p.getAddress(),
                 p.getReview(),
+                p.getImageUrl(),
                 p.getLatitude(),
                 p.getLongitude(),
                 p.getCreatedAt() != null ? p.getCreatedAt().format(FMT) : ""

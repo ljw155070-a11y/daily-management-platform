@@ -13,7 +13,7 @@
         <div class="map-stats-card">
             <div class="stat-item">
                 <span class="stat-value" id="stat-provinces">0<small>/17</small></span>
-                <span class="stat-label">방문 시·도</span>
+                <span class="stat-label" id="stat-provinces-label">방문 시도</span>
             </div>
             <div class="stat-sep"></div>
             <div class="stat-item">
@@ -23,53 +23,89 @@
             <div class="stat-sep"></div>
             <div class="stat-item">
                 <span class="stat-value" id="stat-travel">0</span>
-                <span class="stat-label">✈ 여행지</span>
+                <span class="stat-label">여행지</span>
             </div>
             <div class="stat-sep"></div>
             <div class="stat-item">
                 <span class="stat-value" id="stat-food">0</span>
-                <span class="stat-label">🍴 맛집</span>
+                <span class="stat-label">맛집</span>
+            </div>
+        </div>
+
+        <div class="boundary-level-toggle">
+            <button type="button" id="btn-level-province" class="boundary-btn active" onclick="setBoundaryLevel('province')">광역시/도</button>
+            <button type="button" id="btn-level-city"     class="boundary-btn"        onclick="setBoundaryLevel('city')">시/군/구</button>
+        </div>
+
+        <div class="map-guide-badge">오른쪽 마우스를 클릭해서 방문한 여행지를 등록해보세요!</div>
+
+        <div id="map-form-overlay" class="map-form-overlay">
+            <div class="map-form-card">
+                <div class="map-form-header">
+                    <p class="panel-form-title">📍 <span>장소 등록</span></p>
+                    <button type="button" id="btn-form-close" class="map-form-close" aria-label="닫기">×</button>
+                </div>
+
+                <div class="category-toggle">
+                    <button type="button" class="category-btn active" data-value="TRAVEL">✈ 여행지</button>
+                    <button type="button" class="category-btn" data-value="RESTAURANT">🍴 맛집</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="fld-place-name">장소명</label>
+                    <input id="fld-place-name" type="text" class="form-input" placeholder="여행지나 맛집 이름을 입력하세요">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="fld-address">주소</label>
+                    <div class="addr-row">
+                        <input id="fld-address" type="text" class="form-input" placeholder="우클릭 위치 주소가 자동 입력됩니다">
+                        <button type="button" id="btn-addr-search" class="btn-addr">주소 검색</button>
+                    </div>
+                    <p class="addr-notice">자동 입력된 주소는 직접 수정할 수 있습니다.</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="fld-review">메모</label>
+                    <textarea id="fld-review" class="form-input" placeholder="후기나 메모를 자유롭게 남겨보세요"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="fld-image">이미지</label>
+                    <input id="fld-image" type="file" class="form-file-input" accept="image/*">
+                    <div id="place-image-preview" class="place-image-preview"></div>
+                </div>
+
+                <div class="save-row">
+                    <button type="button" id="btn-cancel" class="btn-cancel" style="display:none">취소</button>
+                    <button type="button" id="btn-save" class="btn-save">저장하기</button>
+                </div>
             </div>
         </div>
     </div>
 
     <aside class="travel-panel">
-        <div class="panel-form">
-            <p class="panel-form-title">&#128205; <span th:text="#{travel.form.title}">Save a place</span></p>
-
-            <div class="category-toggle">
-                <button type="button" class="category-btn active" data-value="TRAVEL">&#9992; <span th:text="#{travel.category.destination}">Destination</span></button>
-                <button type="button" class="category-btn" data-value="RESTAURANT">&#127860; <span th:text="#{travel.category.restaurant}">Restaurant</span></button>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="fld-place-name" th:text="#{travel.form.placeName}">Place name</label>
-                <input id="fld-place-name" type="text" class="form-input" th:placeholder="#{travel.form.placeName.placeholder}">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="fld-address" th:text="#{travel.form.address}">Address</label>
-                <div class="addr-row">
-                    <input id="fld-address" type="text" class="form-input" th:placeholder="#{travel.form.address.placeholder}" readonly>
-                    <button type="button" id="btn-addr-search" class="btn-addr" th:text="#{travel.form.address.search}">Find address</button>
+        <div class="panel-public">
+            <div class="public-header">
+                <div>
+                    <p class="public-title">공공 여행지</p>
+                    <p class="public-desc">한국관광공사 공공 API에서 전국 관광지를 불러옵니다.</p>
                 </div>
-                <p class="addr-notice" th:text="#{travel.notice.koreaOnly}">Address search supports South Korea only.</p>
+                <button type="button" id="btn-load-public" class="btn-public-load" th:disabled="${!tourApiEnabled}">
+                    <span th:text="${tourApiEnabled} ? '불러오기' : 'API 키 필요'">불러오기</span>
+                </button>
             </div>
-
-            <div class="form-group">
-                <label class="form-label" for="fld-review" th:text="#{travel.form.review}">Notes</label>
-                <textarea id="fld-review" class="form-input" th:placeholder="#{travel.form.review.placeholder}"></textarea>
-            </div>
-
-            <div class="save-row">
-                <button type="button" id="btn-cancel" class="btn-cancel" style="display:none" th:text="#{common.cancel}">Cancel</button>
-                <button type="button" id="btn-save" class="btn-save" th:text="#{travel.form.save}">Save place</button>
-            </div>
+            <p id="public-status" class="public-status"
+               th:text="${tourApiEnabled} ? 'TourAPI가 준비되었습니다. 버튼을 눌러 여행지를 불러오세요.' : 'application.properties에 tourapi.service-key를 추가하면 이 기능을 사용할 수 있습니다.'">
+                TourAPI가 준비되었습니다. 버튼을 눌러 여행지를 불러오세요.
+            </p>
+            <div id="public-preview" class="public-preview"></div>
+            <div id="public-list" class="public-list"></div>
         </div>
 
         <div class="panel-history">
             <div class="history-header">
-                <span class="history-title" th:text="#{travel.history.title}">Saved places</span>
+                <span class="history-title">저장한 장소</span>
                 <span id="history-count" class="history-count" th:text="${places.size()}">0</span>
             </div>
             <div id="history-list"></div>
@@ -83,35 +119,50 @@
     const INITIAL_PLACES = /*[[${places}]]*/ [];
     const CSRF_TOKEN = /*[[${_csrf.token}]]*/ '';
     const CSRF_HEADER = /*[[${_csrf.headerName}]]*/ '';
+    const TOUR_API_ENABLED = /*[[${tourApiEnabled}]]*/ false;
     const MAP_LAT = /*[[${mapLat}]]*/ 36.5;
     const MAP_LNG = /*[[${mapLng}]]*/ 127.5;
     const MAP_LEVEL = /*[[${mapLevel}]]*/ 13;
     const TEXT = {
-        mapMissingKeyTitle: /*[[#{travel.map.missingKey.title}]]*/ 'Kakao Maps API key is missing',
-        mapMissingKeyBody: /*[[#{travel.map.missingKey.body}]]*/ 'Add the API key to application.properties.',
-        mapFailedTitle: /*[[#{travel.map.failed.title}]]*/ 'Map failed to load',
-        mapFailedBody: /*[[#{travel.map.failed.body}]]*/ 'Check the Kakao developer console.',
-        destination: /*[[#{travel.category.destination}]]*/ 'Destination',
-        restaurant: /*[[#{travel.category.restaurant}]]*/ 'Restaurant',
-        historyEmpty: /*[[#{travel.history.empty}]]*/ 'No places saved yet.',
-        deleteLabel: /*[[#{common.delete}]]*/ 'Delete',
-        placeNameRequired: /*[[#{travel.validation.placeName}]]*/ 'Please enter a place name.',
-        addressRequired: /*[[#{travel.validation.address}]]*/ 'Please search for an address.',
-        saving: /*[[#{travel.form.saving}]]*/ 'Saving...',
-        saved: /*[[#{travel.toast.saved}]]*/ 'Place saved.',
-        saveFailed: /*[[#{travel.toast.saveFailed}]]*/ 'Failed to save the place.',
-        saveButton: /*[[#{travel.form.save}]]*/ 'Save place',
-        confirmDelete: /*[[#{travel.confirm.delete}]]*/ 'Delete this place?',
-        deleted: /*[[#{travel.toast.deleted}]]*/ 'Place deleted.',
-        deleteFailed: /*[[#{travel.toast.deleteFailed}]]*/ 'Failed to delete the place.',
-        formTitle: /*[[#{travel.form.title}]]*/ 'Save a place',
-        editFormTitle: /*[[#{travel.form.editTitle}]]*/ '장소 수정',
-        editLabel: /*[[#{common.edit}]]*/ '수정',
-        cancelLabel: /*[[#{common.cancel}]]*/ '취소',
-        editButton: /*[[#{travel.form.edit}]]*/ '수정하기',
-        editing: /*[[#{travel.form.editing}]]*/ '수정 중...',
-        updated: /*[[#{travel.toast.updated}]]*/ '수정되었습니다.',
-        updateFailed: /*[[#{travel.toast.updateFailed}]]*/ '장소 수정에 실패했습니다.'
+        mapMissingKeyTitle: '지도를 불러올 수 없습니다',
+        mapMissingKeyBody: 'application.properties에 Kakao Maps API 키를 설정해 주세요.',
+        mapFailedTitle: '지도를 불러오지 못했습니다',
+        mapFailedBody: 'Kakao Maps 스크립트 로딩 상태를 확인해 주세요.',
+        destination: '여행지',
+        restaurant: '맛집',
+        historyEmpty: '아직 저장한 장소가 없습니다.',
+        deleteLabel: '삭제',
+        placeNameRequired: '장소명을 입력해 주세요.',
+        addressRequired: '주소를 검색해 주세요.',
+        saving: '저장 중...',
+        saved: '장소를 저장했습니다.',
+        saveFailed: '장소 저장에 실패했습니다.',
+        saveButton: '저장하기',
+        confirmDelete: '이 장소를 삭제할까요?',
+        deleted: '장소를 삭제했습니다.',
+        deleteFailed: '장소 삭제에 실패했습니다.',
+        formTitle: '장소 등록',
+        editFormTitle: '장소 수정',
+        editLabel: '수정',
+        cancelLabel: '취소',
+        editButton: '수정하기',
+        editing: '수정 중...',
+        updated: '장소를 수정했습니다.',
+        updateFailed: '장소 수정에 실패했습니다.',
+        publicLoad: '공공 여행지를 불러오는 중입니다...',
+        publicReady: '공공 여행지를 불러왔습니다. 카드를 누르면 지도에서 확인할 수 있습니다.',
+        publicEmpty: 'API에서 불러온 공공 여행지가 없습니다.',
+        publicFailed: '공공 여행지를 불러오지 못했습니다.',
+        publicButton: '불러오기',
+        publicButtonReload: '다시 불러오기',
+        publicApiMissing: 'application.properties에 tourapi.service-key를 추가하면 이 기능을 사용할 수 있습니다.',
+        publicNoAddress: '주소 정보 없음',
+        provinceNoSaved: '이 지역에는 아직 저장한 장소가 없습니다.',
+        addressLoading: '주소를 불러오는 중...',
+        addressResolveFailed: '이 위치의 주소를 찾지 못했습니다. 직접 주소 검색을 해주세요.',
+        placePrepared: '선택한 위치를 등록 폼에 담았습니다.',
+        imageLabel: '첨부 이미지',
+        noImage: '이미지 없음'
     };
     /*]]>*/
 </script>
@@ -122,7 +173,7 @@
     <script th:src="${'//dapi.kakao.com/v2/maps/sdk.js?appkey=' + kakaoApiKey + '&libraries=services,clusterer'}"></script>
 </th:block>
 
-<script th:src="@{/js/travel.js(v=7)}"></script>
+<script th:src="@{/js/travel.js(v=11)}"></script>
 
 </body>
 </html>

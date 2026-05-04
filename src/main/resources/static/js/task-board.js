@@ -59,7 +59,7 @@
                     <span class="tb-item-status">${esc(STATUS_LABEL[task.status])}</span>
                     <span class="tb-item-text${task.status === "done" ? " done-text" : ""}">${esc(task.taskText)}</span>
                     <button type="button" class="tb-item-change" onclick="tbCycle(${task.id}, '${task.status}')">${esc(STATUS_LABEL[NEXT_STATUS[task.status]])}</button>
-                    <button type="button" class="tb-item-del" onclick="tbDel(${task.id})" aria-label="Delete task">&times;</button>
+                    <button type="button" class="tb-item-del" onclick="tbDel(${task.id})" aria-label="${esc(STATUS_LABEL.deleteLabel || "Delete")}">&times;</button>
                 </li>
             `).join("");
         }
