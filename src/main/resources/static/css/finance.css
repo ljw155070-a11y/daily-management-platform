@@ -326,6 +326,17 @@
     color: #1b1d21;
 }
 
+.change-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+.change-badge.up { background: #fdf3f3; color: #d94848; }
+.change-badge.down { background: #f0f5fc; color: #3b6fd4; }
+
 .category-values {
     display: flex;
     flex-direction: column;

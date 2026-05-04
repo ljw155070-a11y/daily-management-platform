@@ -102,6 +102,13 @@ public class FinanceTxService {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
         Map<Long, FinanceCategory> categoryMap = getCategoryMap(normalizedUserId);
+        YearMonth prevMonth = yearMonth.minusMonths(1);
+        LocalDate prevStartDate = prevMonth.atDay(1);
+        LocalDate prevEndDate = prevMonth.atEndOfMonth();
+        Map<Long, BigDecimal> previousExpenseMap = txRepository
+                .sumByCategoryAndPeriod(normalizedUserId, "EXPENSE", prevStartDate, prevEndDate)
+                .stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> defaultIfNull((BigDecimal) row[1])));
 
         BigDecimal totalIncome = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "INCOME", startDate, endDate));
         BigDecimal totalExpense = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate));
@@ -114,7 +121,7 @@ public class FinanceTxService {
         List<FinanceMonthlySummaryDto.CategorySummary> expenseByCategory = txRepository
                 .sumByCategoryAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate)
                 .stream()
-                .map(row -> toCategorySummary(row, categoryMap, totalExpense))
+                .map(row -> toCategorySummary(row, categoryMap, totalExpense, previousExpenseMap))
                 .toList();
 
         return new FinanceMonthlySummaryDto(
@@ -161,11 +168,19 @@ public class FinanceTxService {
     private FinanceMonthlySummaryDto.CategorySummary toCategorySummary(
             Object[] row,
             Map<Long, FinanceCategory> categoryMap,
-            BigDecimal totalExpense
+            BigDecimal totalExpense,
+            Map<Long, BigDecimal> previousExpenseMap
     ) {
         Long categoryId = (Long) row[0];
         BigDecimal amount = defaultIfNull((BigDecimal) row[1]);
         FinanceCategory category = categoryMap.get(categoryId);
+        BigDecimal previousAmount = defaultIfNull(previousExpenseMap.get(categoryId));
+        Double changePercent = previousAmount.compareTo(BigDecimal.ZERO) == 0
+                ? null
+                : amount.subtract(previousAmount)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(previousAmount, 2, RoundingMode.HALF_UP)
+                .doubleValue();
         double percentage = BigDecimal.ZERO.compareTo(totalExpense) == 0
                 ? 0d
                 : amount.multiply(BigDecimal.valueOf(100))
@@ -177,7 +192,8 @@ public class FinanceTxService {
                 category != null ? category.getCatName() : null,
                 category != null ? category.getIcon() : null,
                 amount,
-                percentage
+                percentage,
+                changePercent
         );
     }
 

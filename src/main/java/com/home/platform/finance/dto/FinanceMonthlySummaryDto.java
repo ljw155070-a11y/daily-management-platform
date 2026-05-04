@@ -19,7 +19,8 @@ public record FinanceMonthlySummaryDto(
             String categoryName,
             String icon,
             BigDecimal amount,
-            double percentage
+            double percentage,
+            Double changePercent
     ) {
     }
 }
