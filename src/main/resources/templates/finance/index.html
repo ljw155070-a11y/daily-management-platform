@@ -5,12 +5,260 @@
 
 <div th:replace="~{fragments/header :: header(${activeTab})}"></div>
 
-<main class="main-content">
-    <section class="page-hero page-hero--finance">
-        <h1 class="page-title" th:text="#{page.finance.title}">Finance</h1>
-        <p class="page-desc" th:text="#{page.finance.desc}">Budgeting and household money features can grow here next.</p>
+<link rel="stylesheet" th:href="@{/css/finance.css}">
+
+<div class="finance-layout">
+    <section class="finance-dashboard">
+        <div class="finance-hero-card">
+            <div>
+                <p class="finance-page-kicker" th:text="#{page.finance.title}">Finance</p>
+                <h1 class="finance-page-title">
+                    <span th:text="${year}">2025</span>
+                    <span class="finance-page-divider">.</span>
+                    <span th:text="${month}">5</span>
+                </h1>
+                <p class="finance-page-desc" th:text="#{page.finance.desc}">Track income and expenses, manage budgets, and view monthly analysis.</p>
+            </div>
+            <div class="finance-month-nav month-nav">
+                <a class="month-nav-btn" data-direction="-1" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}" th:text="#{finance.month.prev}">Previous</a>
+                <div class="month-nav-current">
+                    <span th:text="${year}">2025</span><span>년 </span><span th:text="${month}">5</span><span>월</span>
+                </div>
+                <a class="month-nav-btn" data-direction="1" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}" th:text="#{finance.month.next}">Next</a>
+            </div>
+        </div>
+
+        <div id="summary-cards" class="finance-summary-grid summary-cards">
+            <article class="summary-card summary-card-income">
+                <span class="summary-label" th:text="#{finance.summary.income}">Income</span>
+                <strong id="summary-income" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.totalIncome, 0, 'COMMA')}|">₩0</strong>
+            </article>
+            <article class="summary-card summary-card-expense">
+                <span class="summary-label" th:text="#{finance.summary.expense}">Expense</span>
+                <strong id="summary-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')}|">₩0</strong>
+            </article>
+            <article class="summary-card summary-card-balance">
+                <span class="summary-label" th:text="#{finance.summary.balance}">Balance</span>
+                <strong id="summary-balance" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.balance, 0, 'COMMA')}|">₩0</strong>
+            </article>
+        </div>
+
+        <div class="finance-dashboard-grid">
+            <article class="dashboard-card chart-card">
+                <div class="card-head">
+                    <div>
+                        <p class="card-kicker" th:text="#{finance.chart.title}">Spending by category</p>
+                        <h2 class="card-title" th:text="#{finance.summary.expense}">Expense</h2>
+                    </div>
+                    <span class="card-badge" th:text="#{finance.unit}">KRW</span>
+                </div>
+                <div id="category-chart-list" class="category-chart-list chart-section">
+                    <div class="category-chart-item" th:each="item : ${summary.expenseByCategory()}">
+                        <div class="category-chart-top">
+                            <div class="category-meta">
+                                <span class="category-icon" th:text="${item.icon != null ? item.icon : '•'}">•</span>
+                                <span class="category-name" th:text="${item.categoryName}">Category</span>
+                            </div>
+                            <div class="category-values">
+                                <strong th:text="|₩${#numbers.formatInteger(item.amount, 0, 'COMMA')}|">₩0</strong>
+                                <span th:text="|${#numbers.formatDecimal(item.percentage, 1, 2)}%|">0%</span>
+                            </div>
+                        </div>
+                        <div class="category-bar-track">
+                            <div class="category-bar-fill" th:style="|width:${item.percentage}%;|"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="category-chart-empty" class="empty-state" th:text="#{finance.history.empty}">No transactions this month.</div>
+            </article>
+
+            <article class="dashboard-card budget-card">
+                <div class="card-head">
+                    <div>
+                        <p class="card-kicker" th:text="#{finance.budget.title}">Budget</p>
+                        <h2 class="card-title" th:text="#{finance.budget.set}">Set budget</h2>
+                    </div>
+                    <span class="card-badge" th:text="${budgets.size()}">0</span>
+                </div>
+                <div id="budget-list" class="budget-list budget-section">
+                    <div class="budget-item" th:each="budget : ${budgets}"
+                         th:with="remaining=${budget.amount.subtract(budget.spent)}, usage=${budget.amount.signum() > 0 ? T(java.lang.Math).min(100.0, budget.spent.multiply(T(java.math.BigDecimal).valueOf(100)).divide(budget.amount, 2, T(java.math.RoundingMode).HALF_UP).doubleValue()) : 0}">
+                        <div class="budget-item-top">
+                            <div>
+                                <p class="budget-name" th:text="${budget.categoryName != null ? budget.categoryName : #{finance.budget.title}}">Budget</p>
+                                <p class="budget-amount" th:text="|₩${#numbers.formatInteger(budget.amount, 0, 'COMMA')}|">₩0</p>
+                            </div>
+                            <span class="budget-percent" th:text="|${#numbers.formatDecimal(usage, 1, 2)}%|">0%</span>
+                        </div>
+                        <div class="budget-bar-track">
+                            <div class="budget-bar-fill" th:style="|width:${usage}%;|"></div>
+                        </div>
+                        <div class="budget-meta-row">
+                            <span th:text="|#{finance.budget.spent}: ₩${#numbers.formatInteger(budget.spent, 0, 'COMMA')}|">Spent</span>
+                            <span th:text="|#{finance.budget.remaining}: ₩${#numbers.formatInteger(remaining, 0, 'COMMA')}|">Remaining</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="budget-empty" class="empty-state" th:text="#{finance.budget.set}">Set budget</div>
+            </article>
+        </div>
     </section>
-</main>
+
+    <aside class="finance-panel">
+        <section class="panel-card transaction-form-card">
+            <div class="panel-card-head">
+                <div>
+                    <p class="panel-form-title" th:text="#{finance.form.title}">Add transaction</p>
+                    <p class="panel-form-desc" th:text="#{page.finance.desc}">Track income and expenses, manage budgets, and view monthly analysis.</p>
+                </div>
+            </div>
+
+            <div class="finance-type-toggle" role="group" aria-label="transaction type">
+                <button type="button" class="finance-type-btn active" data-value="INCOME" th:text="#{finance.type.income}">Income</button>
+                <button type="button" class="finance-type-btn" data-value="EXPENSE" th:text="#{finance.type.expense}">Expense</button>
+            </div>
+
+            <form id="finance-form" class="finance-form">
+                <input type="hidden" id="finance-edit-id">
+
+                <div class="form-group">
+                    <label class="form-label" for="finance-category" th:text="#{finance.form.category}">Category</label>
+                    <select id="finance-category" class="form-input">
+                        <option value="" selected disabled th:text="#{finance.form.category}">Category</option>
+                        <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.catName}">Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="finance-amount" th:text="#{finance.form.amount}">Amount</label>
+                    <input id="finance-amount" type="number" step="0.01" min="0" class="form-input" th:placeholder="#{finance.form.amount.placeholder}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="finance-date" th:text="#{finance.form.date}">Date</label>
+                    <input id="finance-date" type="date" class="form-input" th:value="|${year}-${month < 10 ? '0' + month : month}-01|">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="finance-payment-method" th:text="#{finance.form.paymentMethod}">Payment method</label>
+                    <select id="finance-payment-method" class="form-input">
+                        <option value="CASH" th:text="#{finance.payment.cash}">Cash</option>
+                        <option value="CARD" th:text="#{finance.payment.card}">Card</option>
+                        <option value="TRANSFER" th:text="#{finance.payment.transfer}">Transfer</option>
+                        <option value="OTHER" th:text="#{finance.payment.other}">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="finance-description" th:text="#{finance.form.description}">Notes</label>
+                    <textarea id="finance-description" class="form-input" th:placeholder="#{finance.form.description.placeholder}"></textarea>
+                </div>
+
+                <div class="save-row">
+                    <button type="button" id="finance-cancel" class="btn-cancel" style="display:none" th:text="#{common.cancel}">Cancel</button>
+                    <button type="button" id="finance-save" class="btn-save" th:text="#{finance.form.save}">Save</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel-card transaction-history-card">
+            <div class="panel-card-head">
+                <div>
+                    <p class="panel-form-title" th:text="#{finance.history.title}">Transactions</p>
+                    <p class="panel-form-desc"><span th:text="${year}">2025</span>.<span th:text="${month}">5</span></p>
+                </div>
+                <span class="history-count" th:text="${transactions.size()}">0</span>
+            </div>
+
+            <div id="transaction-history-list" class="transaction-history-list">
+                <article class="transaction-item" th:each="transaction : ${transactions}">
+                    <div class="transaction-main">
+                        <div class="transaction-icon" th:text="${transaction.categoryIcon != null ? transaction.categoryIcon : '•'}">•</div>
+                        <div class="transaction-body">
+                            <div class="transaction-top-row">
+                                <strong class="transaction-category" th:text="${transaction.categoryName}">Category</strong>
+                                <span class="transaction-amount"
+                                      th:classappend="${transaction.txType == 'INCOME'} ? ' income' : ' expense'"
+                                      th:text="|₩${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}|">₩0</span>
+                            </div>
+                            <div class="transaction-meta">
+                                <span th:text="${transaction.txDate}">2025-05-01</span>
+                                <span th:text="${transaction.paymentMethod}">CARD</span>
+                                <span th:if="${transaction.description != null and !#strings.isEmpty(transaction.description)}" th:text="${transaction.description}">memo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="transaction-actions">
+                        <button type="button" class="action-btn edit" th:attr="data-id=${transaction.id}" th:text="#{common.edit}">Edit</button>
+                        <button type="button" class="action-btn delete" th:attr="data-id=${transaction.id}" th:text="#{common.delete}">Delete</button>
+                    </div>
+                </article>
+            </div>
+            <div id="transaction-history-empty" class="empty-state" th:text="#{finance.history.empty}">No transactions this month.</div>
+        </section>
+    </aside>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const CATEGORIES = /*[[${categories}]]*/ [];
+    const TRANSACTIONS = /*[[${transactions}]]*/ [];
+    const SUMMARY = /*[[${summary}]]*/ {};
+    const BUDGETS = /*[[${budgets}]]*/ [];
+    const CSRF_TOKEN = /*[[${_csrf.token}]]*/ '';
+    const CSRF_HEADER = /*[[${_csrf.headerName}]]*/ '';
+    const CURRENT_YEAR = /*[[${year}]]*/ 2025;
+    const CURRENT_MONTH = /*[[${month}]]*/ 5;
+    const TEXT = {
+        pageTitle: /*[[#{page.finance.title}]]*/ 'Finance',
+        pageDesc: /*[[#{page.finance.desc}]]*/ 'Track income and expenses, manage budgets, and view monthly analysis.',
+        summaryIncome: /*[[#{finance.summary.income}]]*/ 'Income',
+        summaryExpense: /*[[#{finance.summary.expense}]]*/ 'Expense',
+        summaryBalance: /*[[#{finance.summary.balance}]]*/ 'Balance',
+        formTitle: /*[[#{finance.form.title}]]*/ 'Add transaction',
+        formEditTitle: /*[[#{finance.form.editTitle}]]*/ 'Edit transaction',
+        typeIncome: /*[[#{finance.type.income}]]*/ 'Income',
+        typeExpense: /*[[#{finance.type.expense}]]*/ 'Expense',
+        formCategory: /*[[#{finance.form.category}]]*/ 'Category',
+        formAmount: /*[[#{finance.form.amount}]]*/ 'Amount',
+        formAmountPlaceholder: /*[[#{finance.form.amount.placeholder}]]*/ 'Enter amount',
+        formDate: /*[[#{finance.form.date}]]*/ 'Date',
+        formDescription: /*[[#{finance.form.description}]]*/ 'Notes',
+        formDescriptionPlaceholder: /*[[#{finance.form.description.placeholder}]]*/ 'Add a description or memo',
+        formPaymentMethod: /*[[#{finance.form.paymentMethod}]]*/ 'Payment method',
+        paymentCash: /*[[#{finance.payment.cash}]]*/ 'Cash',
+        paymentCard: /*[[#{finance.payment.card}]]*/ 'Card',
+        paymentTransfer: /*[[#{finance.payment.transfer}]]*/ 'Transfer',
+        paymentOther: /*[[#{finance.payment.other}]]*/ 'Other',
+        formSave: /*[[#{finance.form.save}]]*/ 'Save',
+        formSaving: /*[[#{finance.form.saving}]]*/ 'Saving...',
+        formEdit: /*[[#{finance.form.edit}]]*/ 'Update',
+        formEditing: /*[[#{finance.form.editing}]]*/ 'Updating...',
+        historyTitle: /*[[#{finance.history.title}]]*/ 'Transactions',
+        historyEmpty: /*[[#{finance.history.empty}]]*/ 'No transactions this month.',
+        toastSaved: /*[[#{finance.toast.saved}]]*/ 'Transaction saved.',
+        toastSaveFailed: /*[[#{finance.toast.saveFailed}]]*/ 'Failed to save.',
+        toastUpdated: /*[[#{finance.toast.updated}]]*/ 'Transaction updated.',
+        toastUpdateFailed: /*[[#{finance.toast.updateFailed}]]*/ 'Failed to update.',
+        toastDeleted: /*[[#{finance.toast.deleted}]]*/ 'Transaction deleted.',
+        toastDeleteFailed: /*[[#{finance.toast.deleteFailed}]]*/ 'Failed to delete.',
+        confirmDelete: /*[[#{finance.confirm.delete}]]*/ 'Delete this transaction?',
+        budgetTitle: /*[[#{finance.budget.title}]]*/ 'Budget',
+        budgetSet: /*[[#{finance.budget.set}]]*/ 'Set budget',
+        budgetSpent: /*[[#{finance.budget.spent}]]*/ 'Spent',
+        budgetRemaining: /*[[#{finance.budget.remaining}]]*/ 'Remaining',
+        chartTitle: /*[[#{finance.chart.title}]]*/ 'Spending by category',
+        monthPrev: /*[[#{finance.month.prev}]]*/ 'Previous',
+        monthNext: /*[[#{finance.month.next}]]*/ 'Next',
+        unit: /*[[#{finance.unit}]]*/ 'KRW',
+        deleteLabel: /*[[#{common.delete}]]*/ 'Delete',
+        editLabel: /*[[#{common.edit}]]*/ 'Edit',
+        cancelLabel: /*[[#{common.cancel}]]*/ 'Cancel'
+    };
+    /*]]>*/
+</script>
+
+<script th:src="@{/js/finance.js(v=1)}"></script>
 
 </body>
 </html>
