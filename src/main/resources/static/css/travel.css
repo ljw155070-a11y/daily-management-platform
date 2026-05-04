@@ -27,7 +27,8 @@
 }
 
 .map-info-window {
-    width: 280px;
+    width: 300px;
+    max-width: min(300px, calc(100vw - 48px));
     padding: 12px 14px;
     font-size: 13px;
     line-height: 1.6;
@@ -128,8 +129,9 @@
 
 .map-info-window__search-row {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     margin-top: 10px;
     padding-top: 8px;
     border-top: 1px solid #f1f5f9;
@@ -139,16 +141,25 @@
     font-size: 11px;
     color: #94a3b8;
     font-weight: 600;
-    flex-shrink: 0;
-    margin-right: 2px;
+    display: block;
+    margin-right: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.map-info-window__search-icons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .map-info-window__search-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -898,6 +909,61 @@ textarea.form-input {
     gap: 8px;
     max-height: 220px;
     overflow-y: auto;
+}
+
+.public-loading-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 14px;
+    border: 1px dashed #d7def4;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef3ff 100%);
+    color: #334155;
+    text-align: center;
+}
+
+.public-loading-rabbit {
+    font-size: 2rem;
+    line-height: 1;
+    animation: rabbitRummage 1.15s ease-in-out infinite;
+    transform-origin: center bottom;
+}
+
+.public-loading-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+.public-loading-subtitle {
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+@keyframes rabbitRummage {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+
+    20% {
+        transform: translateY(-2px) rotate(-7deg) scale(1.04);
+    }
+
+    45% {
+        transform: translateY(1px) rotate(6deg) scale(0.98);
+    }
+
+    70% {
+        transform: translateY(-1px) rotate(-5deg) scale(1.03);
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
 }
 
 .public-empty {

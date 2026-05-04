@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class TravelPlaceController {
@@ -108,6 +109,18 @@ public class TravelPlaceController {
     public ResponseEntity<?> getAttractions() {
         try {
             return ResponseEntity.ok(tourApiService.getNationwideAttractions());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(503).body(java.util.Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/api/tourism/attractions/region")
+    @ResponseBody
+    public ResponseEntity<?> getAttractionsByRegion(@RequestParam String province) {
+        try {
+            return ResponseEntity.ok(tourApiService.getAttractionsByProvince(province));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(503).body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {

@@ -1,3 +1,8 @@
+function getCsrfToken() {
+  const cookie = document.cookie.split('; ').find((r) => r.startsWith('XSRF-TOKEN='));
+  return cookie ? decodeURIComponent(cookie.split('=')[1]) : CSRF_TOKEN;
+}
+
 let map = null;
 let geocoder = null;
 let editingId = null;
@@ -10,6 +15,7 @@ let currentBoundaryLevel = 'province';
 
 const placeList = Array.isArray(INITIAL_PLACES) ? [...INITIAL_PLACES] : [];
 const publicAttractions = [];
+const allPublicAttractions = [];
 const markerMap = new Map();
 const publicMarkerMap = new Map();
 let selectedMarkerOverlay = null;
@@ -18,6 +24,26 @@ let selectedPublicAttractionId = null;
 let mapRegisterOverlay = null;
 let selectedMapLatLng = null;
 let selectedExistingImageUrl = "";
+
+const REGION_ADDRESS_PREFIX_MAP = {
+  "서울특별시": ["서울특별시", "서울"],
+  "부산광역시": ["부산광역시", "부산"],
+  "대구광역시": ["대구광역시", "대구"],
+  "인천광역시": ["인천광역시", "인천"],
+  "광주광역시": ["광주광역시", "광주"],
+  "대전광역시": ["대전광역시", "대전"],
+  "울산광역시": ["울산광역시", "울산"],
+  "세종특별자치시": ["세종특별자치시", "세종"],
+  "경기도": ["경기도", "경기"],
+  "강원특별자치도": ["강원특별자치도", "강원도", "강원"],
+  "충청북도": ["충청북도", "충북"],
+  "충청남도": ["충청남도", "충남"],
+  "전북특별자치도": ["전북특별자치도", "전라북도", "전북"],
+  "전라남도": ["전라남도", "전남"],
+  "경상북도": ["경상북도", "경북"],
+  "경상남도": ["경상남도", "경남"],
+  "제주특별자치도": ["제주특별자치도", "제주도", "제주"],
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   renderHistory();
@@ -129,7 +155,10 @@ function initMap() {
     }
   });
 
-  kakao.maps.event.addListener(map, "click", () => hideMapRegisterOverlay());
+  kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+    hideMapRegisterOverlay();
+    loadAttractionsByLocation(mouseEvent.latLng);
+  });
   kakao.maps.event.addListener(map, "rightclick", (mouseEvent) => {
     showMapRegisterOverlay(mouseEvent.latLng);
   });
@@ -168,41 +197,7 @@ function showMapRegisterOverlay(latLng) {
   regBtn.textContent = "📍 여기에 장소 등록";
   regBtn.addEventListener("click", () => preparePlaceFromMap(latLng));
 
-  // 여행지 추천 토글 버튼
-  const suggestWrap = document.createElement("div");
-  suggestWrap.className = "map-suggest-wrap";
-
-  const suggestToggle = document.createElement("button");
-  suggestToggle.type = "button";
-  suggestToggle.className = "map-context-btn map-context-btn--suggest";
-  suggestToggle.innerHTML = "🗺 여행지 추천 <span class='map-suggest-arrow'>▾</span>";
-
-  const suggestList = document.createElement("div");
-  suggestList.className = "map-suggest-list";
-
-  const tourBtn = document.createElement("button");
-  tourBtn.type = "button";
-  tourBtn.className = "map-suggest-api-btn";
-  tourBtn.innerHTML =
-    '<img src="/images/youtube.ico" style="width:14px;height:14px;vertical-align:middle;margin-right:5px" alt="">한국관광공사 API';
-  tourBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    loadAttractionsByLocation(latLng);
-  });
-
-  suggestList.appendChild(tourBtn);
-
-  suggestToggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const open = suggestList.classList.toggle("is-open");
-    suggestToggle.querySelector(".map-suggest-arrow").textContent = open ? "▴" : "▾";
-  });
-
-  suggestWrap.appendChild(suggestToggle);
-  suggestWrap.appendChild(suggestList);
-
   menu.appendChild(regBtn);
-  menu.appendChild(suggestWrap);
 
   const dot = document.createElement("div");
   dot.className = "map-register-dot";
@@ -378,13 +373,15 @@ function buildMapInfoWindowHtml({ title, badgeLabel, badgeClass, address, review
     "</div>" +
     (review ? '<div class="map-info-window__review">' + escHtml(review) + "</div>" : "") +
     '<div class="map-info-window__search-row">' +
-    '<span class="map-info-window__search-label">리뷰 찾아보기</span>' +
-    '<a class="map-info-window__search-btn" href="' + escHtml(urls.youtube) + '" target="_blank" rel="noopener noreferrer" title="YouTube 검색">' +
+    '<span class="map-info-window__search-label">장소 리뷰 찾아보기</span>' +
+    '<div class="map-info-window__search-icons">' +
+    '<a class="map-info-window__search-btn" href="' + escHtml(urls.youtube) + '" target="_blank" rel="noopener noreferrer" title="유튜브 검색">' +
     '<img class="map-info-window__search-icon" src="/images/youtube.ico" alt="YouTube"></a>' +
     '<a class="map-info-window__search-btn" href="' + escHtml(urls.naver) + '" target="_blank" rel="noopener noreferrer" title="네이버 검색">' +
     '<img class="map-info-window__search-icon" src="/images/naver.ico" alt="Naver"></a>' +
     '<a class="map-info-window__search-btn" href="' + escHtml(urls.google) + '" target="_blank" rel="noopener noreferrer" title="구글 검색">' +
     '<img class="map-info-window__search-icon" src="/images/google.ico" alt="Google"></a>' +
+    "</div>" +
     "</div>" +
     "</div>"
   );
@@ -417,36 +414,9 @@ function extractProvince(address) {
     return null;
   }
 
-  const rules = [
-    ["서울", "서울특별시"],
-    ["부산", "부산광역시"],
-    ["대구", "대구광역시"],
-    ["인천", "인천광역시"],
-    ["광주", "광주광역시"],
-    ["대전", "대전광역시"],
-    ["울산", "울산광역시"],
-    ["세종", "세종특별자치시"],
-    ["경기", "경기도"],
-    ["강원", "강원특별자치도"],
-    ["충청북도", "충청북도"],
-    ["충북", "충청북도"],
-    ["충청남도", "충청남도"],
-    ["충남", "충청남도"],
-    ["전북특별자치도", "전북특별자치도"],
-    ["전라북도", "전북특별자치도"],
-    ["전북", "전북특별자치도"],
-    ["전라남도", "전라남도"],
-    ["전남", "전라남도"],
-    ["경상북도", "경상북도"],
-    ["경북", "경상북도"],
-    ["경상남도", "경상남도"],
-    ["경남", "경상남도"],
-    ["제주", "제주특별자치도"],
-  ];
-
-  for (const [prefix, provinceName] of rules) {
-    if (address.startsWith(prefix)) {
-      return provinceName;
+  for (const [canonicalName, prefixes] of Object.entries(REGION_ADDRESS_PREFIX_MAP)) {
+    if (prefixes.some((prefix) => String(address).startsWith(prefix))) {
+      return canonicalName;
     }
   }
 
@@ -518,7 +488,11 @@ function drawProvinceOverlays() {
         fillOpacity:   baseOpacity,
       });
 
-      kakao.maps.event.addListener(polygon, "click", () => showRegionToast(region.name, isCity));
+      kakao.maps.event.addListener(polygon, "click", () => {
+        const normalizedRegionName = normalizeRegionName(region.name);
+        showRegionToast(normalizedRegionName, isCity);
+        loadAttractionsByRegion(normalizedRegionName);
+      });
       kakao.maps.event.addListener(polygon, "mouseover", () => {
         polygon.setOptions({ fillOpacity: hoverOpacity, strokeWeight: isVisited ? 3 : 2 });
       });
@@ -1068,7 +1042,7 @@ async function loadPublicAttractions() {
   }
 
   button.disabled = true;
-  statusElement.textContent = TEXT.publicLoad;
+  setPublicLoadingState("전국에서 여행갈 곳을 찾고 있어요. 잠시만 기다려주세요.");
 
   try {
     const response = await fetch("/api/tourism/attractions");
@@ -1077,6 +1051,7 @@ async function loadPublicAttractions() {
       throw new Error(data.error || `${TEXT.publicFailed} (HTTP ${response.status})`);
     }
 
+    allPublicAttractions.splice(0, allPublicAttractions.length, ...data);
     publicAttractions.splice(0, publicAttractions.length, ...data);
     selectedPublicAttractionId = publicAttractions[0]?.contentId ?? null;
     clearPublicMarkers();
@@ -1089,6 +1064,7 @@ async function loadPublicAttractions() {
     statusElement.textContent = error.message || TEXT.publicFailed;
     showToast(TEXT.publicFailed);
   } finally {
+    clearPublicLoadingState();
     button.disabled = false;
   }
 }
@@ -1113,33 +1089,37 @@ function loadAttractionsByLocation(latLng) {
 async function loadAttractionsByRegion(regionName) {
   if (!TOUR_API_ENABLED) { showToast(TEXT.publicApiMissing); return; }
 
-  const statusEl = document.getElementById("public-status");
-  if (statusEl) statusEl.textContent = `${regionName} 여행지를 불러오는 중...`;
+  const normalizedRegionName = normalizeRegionName(regionName);
+  setPublicLoadingState("이 지역에 여행갈 곳을 찾고 있어요. 잠시만 기다려주세요.");
 
   try {
-    if (!publicAttractions.length) {
+    if (!allPublicAttractions.length) {
       const res = await fetch("/api/tourism/attractions");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || TEXT.publicFailed);
-      publicAttractions.splice(0, publicAttractions.length, ...data);
-      document.getElementById("btn-load-public").textContent = TEXT.publicButtonReload;
+      allPublicAttractions.splice(0, allPublicAttractions.length, ...data);
     }
 
-    const filtered = publicAttractions.filter(
-      (a) => a.address && a.address.startsWith(regionName)
-    );
+    const filtered = filterAttractionsByRegion(allPublicAttractions, normalizedRegionName);
+
+    publicAttractions.splice(0, publicAttractions.length, ...filtered);
+    document.getElementById("btn-load-public").textContent = TEXT.publicButtonReload;
 
     clearPublicMarkers();
     filtered.forEach(addPublicMarker);
     selectedPublicAttractionId = filtered[0]?.contentId ?? null;
     renderPublicAttractions();
 
-    if (statusEl) statusEl.textContent = `${regionName} 여행지 ${filtered.length}개를 표시했습니다.`;
-    showToast(`${regionName} 여행지 ${filtered.length}개 표시`, "success");
+    const statusEl = document.getElementById("public-status");
+    if (statusEl) statusEl.textContent = `${normalizedRegionName} 여행지 ${filtered.length}개를 표시했습니다.`;
+    showToast(`${normalizedRegionName} 여행지 ${filtered.length}개 표시`, "success");
   } catch (e) {
     console.error("loadAttractionsByRegion error:", e);
     showToast(e.message || TEXT.publicFailed);
+    const statusEl = document.getElementById("public-status");
     if (statusEl) statusEl.textContent = TEXT.publicFailed;
+  } finally {
+    clearPublicLoadingState();
   }
 }
 
@@ -1153,10 +1133,11 @@ async function loadAttractionsInBounds() {
 
   try {
     if (!publicAttractions.length) {
-      if (statusEl) statusEl.textContent = TEXT.publicLoad;
+      setPublicLoadingState("현재 화면 안에서 여행갈 곳을 찾고 있어요. 잠시만 기다려주세요.");
       const res = await fetch("/api/tourism/attractions");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || TEXT.publicFailed);
+      allPublicAttractions.splice(0, allPublicAttractions.length, ...data);
       publicAttractions.splice(0, publicAttractions.length, ...data);
     }
 
@@ -1180,7 +1161,83 @@ async function loadAttractionsInBounds() {
     console.error("loadAttractionsInBounds error:", e);
     showToast(e.message || TEXT.publicFailed);
   } finally {
+    clearPublicLoadingState();
     if (btn) { btn.disabled = false; btn.textContent = "📍 현재 범위 여행지 추천"; }
+  }
+}
+
+function filterAttractionsByRegion(attractions, regionName) {
+  if (!Array.isArray(attractions)) {
+    return [];
+  }
+
+  const prefixes = getRegionAddressPrefixes(regionName);
+  return attractions.filter((item) => {
+    if (!item?.address) {
+      return false;
+    }
+    return prefixes.some((prefix) => item.address.startsWith(prefix));
+  });
+}
+
+function getRegionAddressPrefixes(regionName) {
+  const normalized = normalizeRegionName(regionName);
+  if (!normalized) {
+    return [];
+  }
+
+  if (normalized.includes(" ")) {
+    return [normalized];
+  }
+
+  return REGION_ADDRESS_PREFIX_MAP[normalized] || [normalized];
+}
+
+function normalizeRegionName(regionName) {
+  const normalized = String(regionName || "").trim();
+  if (!normalized) {
+    return "";
+  }
+
+  if (REGION_ADDRESS_PREFIX_MAP[normalized]) {
+    return normalized;
+  }
+
+  for (const [canonicalName, prefixes] of Object.entries(REGION_ADDRESS_PREFIX_MAP)) {
+    if (prefixes.includes(normalized)) {
+      return canonicalName;
+    }
+  }
+
+  return normalized;
+}
+
+function setPublicLoadingState(message) {
+  const statusEl = document.getElementById("public-status");
+  const listEl = document.getElementById("public-list");
+  const previewEl = document.getElementById("public-preview");
+  if (statusEl) {
+    statusEl.textContent = message;
+  }
+  if (previewEl) {
+    previewEl.classList.remove("is-visible");
+    previewEl.innerHTML = "";
+  }
+  if (listEl) {
+    listEl.innerHTML = `
+      <div class="public-loading-card">
+        <div class="public-loading-rabbit">🐇</div>
+        <div class="public-loading-title">${escHtml(message)}</div>
+        <div class="public-loading-subtitle">가방을 뒤적이며 여행지를 고르고 있어요...</div>
+      </div>
+    `;
+  }
+}
+
+function clearPublicLoadingState() {
+  const listEl = document.getElementById("public-list");
+  if (listEl?.querySelector(".public-loading-card")) {
+    listEl.innerHTML = "";
   }
 }
 
@@ -1280,7 +1337,7 @@ async function handleSave(formData, saveButton) {
     const response = await fetch("/travel/places", {
       method: "POST",
       headers: {
-        [CSRF_HEADER]: CSRF_TOKEN,
+        [CSRF_HEADER]: getCsrfToken(),
       },
       body: formData,
     });
@@ -1317,7 +1374,7 @@ async function handleUpdate(id, formData, saveButton) {
     const response = await fetch(`/travel/places/${id}`, {
       method: "PATCH",
       headers: {
-        [CSRF_HEADER]: CSRF_TOKEN,
+        [CSRF_HEADER]: getCsrfToken(),
       },
       body: formData,
     });

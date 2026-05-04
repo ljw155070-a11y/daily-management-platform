@@ -19,8 +19,13 @@
     let tasks = [];
     let currentFilter = "all";
 
+    function readCsrfToken() {
+        const cookie = document.cookie.split('; ').find((r) => r.startsWith('XSRF-TOKEN='));
+        return cookie ? decodeURIComponent(cookie.split('=')[1]) : csrfToken;
+    }
+
     function requestHeaders(includeJson) {
-        const value = { [csrfHeader]: csrfToken };
+        const value = { [csrfHeader]: readCsrfToken() };
         if (includeJson) {
             value["Content-Type"] = "application/json";
         }

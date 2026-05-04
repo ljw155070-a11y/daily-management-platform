@@ -25,6 +25,30 @@ public class TourApiService {
     );
     private static final Duration CACHE_TTL = Duration.ofHours(6);
 
+    private static final java.util.Map<String, String> PROVINCE_TO_AREA_CODE =
+            java.util.Map.ofEntries(
+                java.util.Map.entry("서울특별시", "1"),
+                java.util.Map.entry("인천광역시", "2"),
+                java.util.Map.entry("대전광역시", "3"),
+                java.util.Map.entry("대구광역시", "4"),
+                java.util.Map.entry("광주광역시", "5"),
+                java.util.Map.entry("부산광역시", "6"),
+                java.util.Map.entry("울산광역시", "7"),
+                java.util.Map.entry("세종특별자치시", "8"),
+                java.util.Map.entry("경기도", "31"),
+                java.util.Map.entry("강원특별자치도", "32"),
+                java.util.Map.entry("강원도", "32"),
+                java.util.Map.entry("충청북도", "33"),
+                java.util.Map.entry("충청남도", "34"),
+                java.util.Map.entry("전북특별자치도", "35"),
+                java.util.Map.entry("전라북도", "35"),
+                java.util.Map.entry("전라남도", "36"),
+                java.util.Map.entry("경상북도", "37"),
+                java.util.Map.entry("경상남도", "38"),
+                java.util.Map.entry("제주특별자치도", "39"),
+                java.util.Map.entry("제주도", "39")
+            );
+
     @Value("${tourapi.service-key:}")
     private String serviceKey;
 
@@ -38,6 +62,18 @@ public class TourApiService {
 
     public boolean isEnabled() {
         return serviceKey != null && !serviceKey.isBlank();
+    }
+
+    public List<TourApiAttractionDto> getAttractionsByProvince(String provinceName) throws Exception {
+        if (!isEnabled()) {
+            throw new IllegalStateException("TourAPI service key is not configured.");
+        }
+        String key = provinceName.contains(" ") ? provinceName.split(" ")[0] : provinceName;
+        String areaCode = PROVINCE_TO_AREA_CODE.get(key);
+        if (areaCode == null) {
+            return List.of();
+        }
+        return fetchAreaAttractions(areaCode);
     }
 
     public synchronized List<TourApiAttractionDto> getNationwideAttractions() throws Exception {
