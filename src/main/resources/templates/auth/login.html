@@ -30,6 +30,12 @@
                 </label>
 
                 <button type="submit" class="auth-submit" th:text="#{auth.login}">Sign in</button>
+
+                <button type="button" class="auth-submit"
+                        style="margin-top:8px;background:#475569;border:none;cursor:pointer"
+                        onclick="document.getElementById('username').value='homehub';document.getElementById('password').value='homehub123!';this.closest('form').submit()">
+                    🔧 테스트 로그인
+                </button>
             </form>
 
             <p class="auth-switch">

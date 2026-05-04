@@ -3,6 +3,7 @@ package com.home.platform.travel;
 import com.home.platform.config.GeoIpService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -22,13 +23,15 @@ public class TravelPlaceController {
 
     private final TravelPlaceService service;
     private final GeoIpService geoIpService;
+    private final SgisService sgisService;
 
     @Value("${kakao.maps.api-key:}")
     private String kakaoApiKey;
 
-    public TravelPlaceController(TravelPlaceService service, GeoIpService geoIpService) {
+    public TravelPlaceController(TravelPlaceService service, GeoIpService geoIpService, SgisService sgisService) {
         this.service = service;
         this.geoIpService = geoIpService;
+        this.sgisService = sgisService;
     }
 
     @GetMapping("/travel")
@@ -66,6 +69,17 @@ public class TravelPlaceController {
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable Long id) {
         service.delete(id, authentication.getName());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/api/provinces")
+    @ResponseBody
+    public ResponseEntity<String> getProvinces() {
+        try {
+            String geoJson = sgisService.getProvinceBoundariesAsGeoJson();
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(geoJson);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     private String resolveClientIp(HttpServletRequest request) {
