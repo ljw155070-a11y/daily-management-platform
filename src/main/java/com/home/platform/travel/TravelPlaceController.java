@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.List;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -29,18 +30,19 @@ public class TravelPlaceController {
     private final TravelPlaceService service;
     private final GeoIpService geoIpService;
     private final SgisService sgisService;
-    private final TourApiService tourApiService;
+    private final PublicTravelAttractionService publicTravelAttractionService;
     private final TravelPlaceImageStorageService imageStorageService;
 
     @Value("${kakao.maps.api-key:}")
     private String kakaoApiKey;
 
     public TravelPlaceController(TravelPlaceService service, GeoIpService geoIpService, SgisService sgisService,
-                                 TourApiService tourApiService, TravelPlaceImageStorageService imageStorageService) {
+                                 PublicTravelAttractionService publicTravelAttractionService,
+                                 TravelPlaceImageStorageService imageStorageService) {
         this.service = service;
         this.geoIpService = geoIpService;
         this.sgisService = sgisService;
-        this.tourApiService = tourApiService;
+        this.publicTravelAttractionService = publicTravelAttractionService;
         this.imageStorageService = imageStorageService;
     }
 
@@ -55,7 +57,7 @@ public class TravelPlaceController {
         model.addAttribute("activeTab", "travel");
         model.addAttribute("places", places);
         model.addAttribute("kakaoApiKey", kakaoApiKey);
-        model.addAttribute("tourApiEnabled", tourApiService.isEnabled());
+        model.addAttribute("tourApiEnabled", publicTravelAttractionService.isAvailable());
         model.addAttribute("mapLat", geo.lat());
         model.addAttribute("mapLng", geo.lng());
         model.addAttribute("mapLevel", geo.mapLevel());
@@ -108,7 +110,7 @@ public class TravelPlaceController {
     @ResponseBody
     public ResponseEntity<?> getAttractions() {
         try {
-            return ResponseEntity.ok(tourApiService.getNationwideAttractions());
+            return ResponseEntity.ok(publicTravelAttractionService.getAllAttractions());
         } catch (IllegalStateException e) {
             return ResponseEntity.status(503).body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -118,13 +120,31 @@ public class TravelPlaceController {
 
     @GetMapping("/api/tourism/attractions/region")
     @ResponseBody
-    public ResponseEntity<?> getAttractionsByRegion(@RequestParam String province) {
+    public ResponseEntity<?> getAttractionsByRegion(@RequestParam(required = false) String province,
+                                                    @RequestParam(required = false) String region) {
         try {
-            return ResponseEntity.ok(tourApiService.getAttractionsByProvince(province));
+            String requestedRegion = (region != null && !region.isBlank()) ? region : province;
+            return ResponseEntity.ok(publicTravelAttractionService.getAttractionsByRegion(requestedRegion));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(503).body(java.util.Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/tourism/attractions/sync")
+    @ResponseBody
+    public ResponseEntity<?> syncAttractions() {
+        try {
+            int syncedCount = publicTravelAttractionService.syncAllAttractions();
+            return ResponseEntity.ok(Map.of(
+                    "syncedCount", syncedCount,
+                    "activeCount", publicTravelAttractionService.countActiveAttractions()
+            ));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(503).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 
