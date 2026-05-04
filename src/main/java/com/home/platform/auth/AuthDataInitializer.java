@@ -1,5 +1,6 @@
 package com.home.platform.auth;
 
+import com.home.platform.finance.FinanceCategoryService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,10 +11,16 @@ public class AuthDataInitializer implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final FinanceCategoryService financeCategoryService;
 
-    public AuthDataInitializer(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+    public AuthDataInitializer(
+            JdbcTemplate jdbcTemplate,
+            PasswordEncoder passwordEncoder,
+            FinanceCategoryService financeCategoryService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
+        this.financeCategoryService = financeCategoryService;
     }
 
     @Override
@@ -33,5 +40,7 @@ public class AuthDataInitializer implements CommandLineRunner {
                     "HomeHub Admin"
             );
         }
+
+        financeCategoryService.initDefaultCategories("homehub");
     }
 }
