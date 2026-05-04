@@ -1,4 +1,4 @@
-﻿package com.home.platform.finance;
+package com.home.platform.finance;
 
 import com.home.platform.finance.dto.FinanceMonthlySummaryDto;
 import com.home.platform.finance.dto.FinanceTxDto;

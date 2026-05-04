@@ -1,4 +1,4 @@
-﻿package com.home.platform.finance;
+package com.home.platform.finance;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

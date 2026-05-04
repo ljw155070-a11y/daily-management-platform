@@ -1,4 +1,4 @@
-﻿package com.home.platform.finance;
+package com.home.platform.finance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
