@@ -885,3 +885,54 @@ textarea.form-input {
 .filter-row .form-input {
     flex: 1;
 }
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.calendar-header {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #8b919a;
+}
+
+.calendar-cell {
+    padding: 8px 4px;
+    min-height: 54px;
+    text-align: center;
+    border-radius: 8px;
+    background: #f8f9fa;
+    cursor: default;
+}
+
+.calendar-cell.today {
+    border: 1px solid #3b6fd4;
+}
+
+.calendar-cell.empty {
+    background: transparent;
+}
+
+.calendar-day {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #1b1d21;
+    margin-bottom: 2px;
+}
+
+.calendar-day.sunday { color: #d94848; }
+.calendar-day.saturday { color: #3b6fd4; }
+
+.calendar-amount {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #d94848;
+}
+
+.calendar-amount.zero {
+    color: #bec3cb;
+}

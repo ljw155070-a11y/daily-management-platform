@@ -18,6 +18,7 @@ const els = {
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
   budgetEmpty: document.getElementById("budget-empty"),
+  calendarGrid: document.getElementById("calendar-grid"),
   historyList: document.getElementById("transaction-history-list"),
   historyEmpty: document.getElementById("transaction-history-empty"),
   historyCount: document.querySelector(".history-count"),
@@ -59,6 +60,7 @@ function renderAll() {
   renderSummary();
   renderCategoryChart();
   renderBudgetBars();
+  renderCalendar();
   renderHistory();
 }
 
@@ -136,6 +138,66 @@ function renderBudgetBars() {
   toggleEmptyState(els.budgetList, els.budgetEmpty, budgetList.length === 0, TEXT.budgetSet);
 }
 
+function renderCalendar() {
+  if (!els.calendarGrid) return;
+
+  const year = Number(CURRENT_YEAR);
+  const month = Number(CURRENT_MONTH);
+  const firstDay = new Date(year, month - 1, 1);
+  const firstWeekday = firstDay.getDay();
+  const totalDays = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month - 1;
+  const expenseMap = new Map();
+
+  txList.forEach((tx) => {
+    if (tx.txType !== "EXPENSE" || !tx.txDate) return;
+    const txDate = new Date(`${tx.txDate}T00:00:00`);
+    if (Number.isNaN(txDate.getTime())) return;
+    if (txDate.getFullYear() !== year || txDate.getMonth() !== month - 1) return;
+
+    const day = txDate.getDate();
+    expenseMap.set(day, (expenseMap.get(day) || 0) + toNumber(tx.amount));
+  });
+
+  const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+  const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
+    const base = new Date(2026, 4, 3 + index);
+    return weekdayFormatter.format(base);
+  });
+
+  const cells = [];
+  weekdayLabels.forEach((label) => {
+    cells.push(`<div class="calendar-header">${escHtml(label)}</div>`);
+  });
+
+  for (let index = 0; index < firstWeekday; index += 1) {
+    cells.push('<div class="calendar-cell empty"></div>');
+  }
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const weekday = (firstWeekday + day - 1) % 7;
+    const amount = expenseMap.get(day) || 0;
+    const isToday = isCurrentMonth && today.getDate() === day;
+    const dayClasses = ['calendar-day'];
+    if (weekday === 0) dayClasses.push('sunday');
+    if (weekday === 6) dayClasses.push('saturday');
+
+    const cellClasses = ['calendar-cell'];
+    if (isToday) cellClasses.push('today');
+
+    const amountText = amount > 0 ? formatAmount(amount) : '-';
+    const amountClass = amount > 0 ? 'calendar-amount' : 'calendar-amount zero';
+
+    cells.push(`
+      <div class="${cellClasses.join(' ')}">
+        <div class="${dayClasses.join(' ')}">${day}</div>
+        <div class="${amountClass}">${escHtml(amountText)}</div>
+      </div>`);
+  }
+
+  els.calendarGrid.innerHTML = cells.join('');
+}
 function renderHistory() {
   if (!els.historyList) return;
 
@@ -202,7 +264,11 @@ function bindEvents() {
 
   els.dashboardTabs.forEach((button) => {
     button.addEventListener("click", () => {
-      setDashboardTab(button.dataset.tab || "chart");
+      const tab = button.dataset.tab || "chart";
+      setDashboardTab(tab);
+      if (tab === "calendar") {
+        renderCalendar();
+      }
     });
   });
 
@@ -511,7 +577,9 @@ function setDashboardTab(tab) {
   });
 
   els.dashboardPanels.forEach((panel) => {
-    panel.classList.toggle("active", panel.dataset.panel === tab);
+    const isActive = panel.dataset.panel === tab;
+    panel.classList.toggle("active", isActive);
+    panel.style.display = isActive ? "block" : "none";
   });
 }
 
