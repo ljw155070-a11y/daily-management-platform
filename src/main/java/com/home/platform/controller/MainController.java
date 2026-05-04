@@ -13,12 +13,6 @@ public class MainController {
         return "index";
     }
 
-    @GetMapping("/finance")
-    public String finance(Model model) {
-        model.addAttribute("activeTab", "finance");
-        return "finance/index";
-    }
-
     @GetMapping("/education")
     public String education(Model model) {
         model.addAttribute("activeTab", "education");
