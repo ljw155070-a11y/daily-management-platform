@@ -35,6 +35,8 @@ const els = {
   cancel: document.getElementById("finance-cancel"),
   formTitle: document.querySelector(".transaction-form-card .panel-form-title"),
   typeButtons: Array.from(document.querySelectorAll(".finance-type-btn")),
+  dashboardTabs: Array.from(document.querySelectorAll(".dashboard-tab")),
+  dashboardPanels: Array.from(document.querySelectorAll(".dashboard-panel")),
   monthButtons: Array.from(document.querySelectorAll(".month-nav-btn")),
 };
 
@@ -43,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
+  setDashboardTab("chart");
   renderAll();
   bindEvents();
 });
@@ -186,6 +189,12 @@ function bindEvents() {
 
   els.save?.addEventListener("click", handleSubmit);
   els.cancel?.addEventListener("click", () => resetForm());
+
+  els.dashboardTabs.forEach((button) => {
+    button.addEventListener("click", () => {
+      setDashboardTab(button.dataset.tab || "chart");
+    });
+  });
 
   els.historyList?.addEventListener("click", (event) => {
     const target = event.target.closest("button[data-action]");
@@ -451,6 +460,16 @@ function compareTransactions(a, b) {
 
 function detectInitialType() {
   return DEFAULT_TX_TYPE;
+}
+
+function setDashboardTab(tab) {
+  els.dashboardTabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tab);
+  });
+
+  els.dashboardPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === tab);
+  });
 }
 
 function syncTypeButtons() {
