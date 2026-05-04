@@ -1,4 +1,4 @@
-﻿package com.home.platform.finance;
+package com.home.platform.finance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +14,8 @@ public interface FinanceTxRepository extends JpaRepository<FinanceTx, Long> {
             String userId, LocalDate startDate, LocalDate endDate);
 
     Optional<FinanceTx> findByIdAndUserId(Long id, String userId);
+
+    long countByCategoryId(Long categoryId);
 
     @Query("""
             SELECT t.categoryId, SUM(t.amount)

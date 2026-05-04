@@ -1,4 +1,4 @@
-﻿package com.home.platform.finance;
+package com.home.platform.finance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -16,4 +16,6 @@ public interface FinanceBudgetRepository extends JpaRepository<FinanceBudget, Lo
 
     Optional<FinanceBudget> findByUserIdAndCategoryIdIsNullAndBudgetYearAndBudgetMonth(
             String userId, Integer budgetYear, Integer budgetMonth);
+
+    long countByCategoryId(Long categoryId);
 }
