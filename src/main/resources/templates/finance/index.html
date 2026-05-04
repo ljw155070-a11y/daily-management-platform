@@ -137,6 +137,11 @@
                     </select>
                 </div>
 
+                <div id="custom-category-group" class="form-group" style="display:none">
+                    <label class="form-label">직접 입력</label>
+                    <input id="finance-custom-category" class="form-input" placeholder="카테고리명을 입력하세요" maxlength="100">
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="finance-amount" th:text="#{finance.form.amount}">Amount</label>
                     <input id="finance-amount" type="number" step="0.01" min="0" class="form-input" th:placeholder="#{finance.form.amount.placeholder}">

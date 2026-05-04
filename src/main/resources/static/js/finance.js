@@ -23,6 +23,8 @@ const els = {
   form: document.getElementById("finance-form"),
   editId: document.getElementById("finance-edit-id"),
   category: document.getElementById("finance-category"),
+  customCategoryGroup: document.getElementById("custom-category-group"),
+  customCategory: document.getElementById("finance-custom-category"),
   amount: document.getElementById("finance-amount"),
   date: document.getElementById("finance-date"),
   fixedRow: document.getElementById("finance-fixed-row"),
@@ -40,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   currentTxType = detectInitialType();
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
+  syncCustomCategoryVisibility();
   renderAll();
   bindEvents();
 });
@@ -173,7 +176,12 @@ function bindEvents() {
       syncTypeButtons();
       populateCategoryOptions(currentTxType, null);
       syncFixedFieldVisibility();
+      syncCustomCategoryVisibility();
     });
+  });
+
+  els.category?.addEventListener("change", () => {
+    syncCustomCategoryVisibility();
   });
 
   els.save?.addEventListener("click", handleSubmit);
@@ -200,8 +208,8 @@ function bindEvents() {
 }
 
 async function handleSubmit() {
-  const payload = collectFormData();
-  if (!payload) return;
+  const formData = collectFormData();
+  if (!formData) return;
 
   const isEditing = editingId !== null;
   const button = els.save;
@@ -211,6 +219,17 @@ async function handleSubmit() {
   }
 
   try {
+    const categoryId = await resolveCategoryId(formData);
+    const payload = {
+      txType: formData.txType,
+      categoryId,
+      amount: formData.amount,
+      txDate: formData.txDate,
+      description: formData.description,
+      paymentMethod: formData.paymentMethod,
+      isFixed: formData.isFixed,
+    };
+
     const response = await fetch(isEditing ? `/finance/transactions/${editingId}` : "/finance/transactions", {
       method: isEditing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_TOKEN },
@@ -232,6 +251,41 @@ async function handleSubmit() {
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+async function resolveCategoryId(formData) {
+  if (!formData.customCategoryName) {
+    return formData.categoryId;
+  }
+
+  const existing = categoryList.find((category) => category.catType === formData.txType && category.catName === formData.customCategoryName);
+  if (existing) {
+    return existing.id;
+  }
+
+  const params = new URLSearchParams({
+    catType: formData.txType,
+    catName: formData.customCategoryName,
+  });
+
+  const response = await fetch("/finance/categories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      [CSRF_HEADER]: CSRF_TOKEN,
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    throw new Error("category create failed");
+  }
+
+  const created = await response.json();
+  categoryList.push(created);
+  populateCategoryOptions(currentTxType, created.id);
+  syncCustomCategoryVisibility();
+  return created.id;
 }
 
 async function deleteTransaction(id) {
@@ -273,6 +327,7 @@ function startEdit(id) {
   syncTypeButtons();
   populateCategoryOptions(currentTxType, tx.categoryId);
   syncFixedFieldVisibility();
+  syncCustomCategoryVisibility();
 
   if (els.editId) els.editId.value = String(id);
   if (els.amount) els.amount.value = tx.amount ?? "";
@@ -293,6 +348,7 @@ function resetForm() {
   syncTypeButtons();
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
+  hideCustomCategoryGroup();
   setDefaultDate();
   if (els.paymentMethod) els.paymentMethod.value = "CASH";
   if (els.isFixed) els.isFixed.checked = false;
@@ -337,6 +393,7 @@ function collectFormData() {
   const description = (els.description?.value || "").trim();
   const paymentMethod = els.paymentMethod?.value || "CASH";
   const isFixed = currentTxType === "EXPENSE" && els.isFixed?.checked ? "Y" : "N";
+  const customCategoryName = isCustomCategorySelected() ? (els.customCategory?.value || "").trim() : "";
 
   if (!Number.isFinite(categoryId)) {
     showToast(TEXT.formCategory);
@@ -351,7 +408,7 @@ function collectFormData() {
     return null;
   }
 
-  return { txType: currentTxType, categoryId, amount, txDate, description, paymentMethod, isFixed };
+  return { txType: currentTxType, categoryId, amount, txDate, description, paymentMethod, isFixed, customCategoryName };
 }
 
 function upsertTransaction(tx) {
@@ -407,6 +464,34 @@ function syncFixedFieldVisibility() {
   const visible = currentTxType === "EXPENSE";
   els.fixedRow.style.display = visible ? "block" : "none";
   if (!visible && els.isFixed) els.isFixed.checked = false;
+}
+
+function syncCustomCategoryVisibility() {
+  if (isCustomCategorySelected()) {
+    showCustomCategoryGroup();
+    return;
+  }
+  hideCustomCategoryGroup();
+}
+
+function isCustomCategorySelected() {
+  const selectedText = els.category?.options?.[els.category.selectedIndex]?.text || "";
+  return selectedText.includes("기타");
+}
+
+function showCustomCategoryGroup() {
+  if (els.customCategoryGroup) {
+    els.customCategoryGroup.style.display = "block";
+  }
+}
+
+function hideCustomCategoryGroup() {
+  if (els.customCategoryGroup) {
+    els.customCategoryGroup.style.display = "none";
+  }
+  if (els.customCategory) {
+    els.customCategory.value = "";
+  }
 }
 
 function setDefaultDate() {
