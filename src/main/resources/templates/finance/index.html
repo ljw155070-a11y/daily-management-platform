@@ -37,6 +37,7 @@
             <article class="summary-card summary-card-expense">
                 <span class="summary-label" th:text="#{finance.summary.expense}">Expense</span>
                 <strong id="summary-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')}|">₩0</strong>
+                <span id="summary-daily" class="summary-sub" th:text="|#{finance.summary.dailyAvg} ₩${#numbers.formatInteger(summary.dailyAverage, 0, 'COMMA')}|">일평균 ₩0</span>
             </article>
             <article class="summary-card summary-card-fixed">
                 <span class="summary-label" th:text="#{finance.fixed}">Fixed</span>
@@ -259,6 +260,7 @@
         pageDesc: /*[[#{page.finance.desc}]]*/ 'Track income and expenses, manage budgets, and view monthly analysis.',
         summaryIncome: /*[[#{finance.summary.income}]]*/ 'Income',
         summaryExpense: /*[[#{finance.summary.expense}]]*/ 'Expense',
+        summaryDailyAvg: /*[[#{finance.summary.dailyAvg}]]*/ 'Daily avg.',
         summaryBalance: /*[[#{finance.summary.balance}]]*/ 'Balance',
         fixedExpense: /*[[#{finance.fixed}]]*/ 'Fixed',
         variableExpense: /*[[#{finance.variable}]]*/ 'Variable',

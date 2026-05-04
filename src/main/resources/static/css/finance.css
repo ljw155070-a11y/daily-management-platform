@@ -180,6 +180,14 @@
     color: #1b1d21;
 }
 
+.summary-sub {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #8b919a;
+}
+
 .finance-dashboard-grid {
     display: grid;
     grid-template-columns: 1fr;

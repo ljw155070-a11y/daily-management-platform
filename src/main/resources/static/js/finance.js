@@ -10,6 +10,7 @@ const budgetList = Array.isArray(BUDGETS) ? [...BUDGETS] : [];
 const els = {
   summaryIncome: document.getElementById("summary-income"),
   summaryExpense: document.getElementById("summary-expense"),
+  summaryDaily: document.getElementById("summary-daily"),
   summaryFixedExpense: document.getElementById("summary-fixed-expense"),
   summaryVariableExpense: document.getElementById("summary-variable-expense"),
   summaryBalance: document.getElementById("summary-balance"),
@@ -64,6 +65,7 @@ function renderAll() {
 function renderSummary() {
   if (els.summaryIncome) els.summaryIncome.textContent = formatAmount(summaryState.totalIncome);
   if (els.summaryExpense) els.summaryExpense.textContent = formatAmount(summaryState.totalExpense);
+  if (els.summaryDaily) els.summaryDaily.textContent = `${TEXT.summaryDailyAvg} ${formatAmount(summaryState.dailyAverage)}`;
   if (els.summaryFixedExpense) els.summaryFixedExpense.textContent = formatAmount(summaryState.fixedExpense);
   if (els.summaryVariableExpense) els.summaryVariableExpense.textContent = formatAmount(summaryState.variableExpense);
   if (els.summaryBalance) els.summaryBalance.textContent = formatAmount(summaryState.balance);
@@ -485,6 +487,7 @@ function normalizeSummary(summary) {
   normalized.totalExpense = toNumber(normalized.totalExpense);
   normalized.fixedExpense = toNumber(normalized.fixedExpense);
   normalized.variableExpense = toNumber(normalized.variableExpense);
+  normalized.dailyAverage = toNumber(normalized.dailyAverage);
   normalized.balance = toNumber(normalized.balance ?? normalized.totalIncome - normalized.totalExpense);
   normalized.expenseByCategory = Array.isArray(normalized.expenseByCategory)
     ? normalized.expenseByCategory.map((item) => ({ ...item, amount: toNumber(item.amount), percentage: Number(item.percentage || 0) }))

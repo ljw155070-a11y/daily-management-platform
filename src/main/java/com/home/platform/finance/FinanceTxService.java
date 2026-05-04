@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -106,6 +107,8 @@ public class FinanceTxService {
         BigDecimal totalExpense = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate));
         BigDecimal fixedExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "Y", startDate, endDate));
         BigDecimal variableExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "N", startDate, endDate));
+        int elapsedDays = calculateElapsedDays(yearMonth);
+        BigDecimal dailyAverage = totalExpense.divide(BigDecimal.valueOf(elapsedDays), 0, RoundingMode.HALF_UP);
         BigDecimal balance = totalIncome.subtract(totalExpense);
 
         List<FinanceMonthlySummaryDto.CategorySummary> expenseByCategory = txRepository
@@ -121,11 +124,24 @@ public class FinanceTxService {
                 totalExpense,
                 fixedExpense,
                 variableExpense,
+                dailyAverage,
                 balance,
                 expenseByCategory
         );
     }
 
+    private int calculateElapsedDays(YearMonth yearMonth) {
+        LocalDate today = LocalDate.now();
+        YearMonth currentYearMonth = YearMonth.from(today);
+
+        if (yearMonth.equals(currentYearMonth)) {
+            return today.getDayOfMonth();
+        }
+        if (yearMonth.isBefore(currentYearMonth)) {
+            return yearMonth.lengthOfMonth();
+        }
+        return 1;
+    }
     private FinanceTxDto toDto(FinanceTx tx, FinanceCategory category) {
         return new FinanceTxDto(
                 tx.getId(),
