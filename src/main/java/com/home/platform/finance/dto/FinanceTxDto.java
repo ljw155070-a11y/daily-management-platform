@@ -12,6 +12,7 @@ public record FinanceTxDto(
         String txDate,
         String description,
         String paymentMethod,
+        String isFixed,
         String createdAt
 ) {
 }

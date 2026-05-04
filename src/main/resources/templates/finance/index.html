@@ -37,6 +37,14 @@
                 <span class="summary-label" th:text="#{finance.summary.expense}">Expense</span>
                 <strong id="summary-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')}|">₩0</strong>
             </article>
+            <article class="summary-card summary-card-fixed">
+                <span class="summary-label" th:text="#{finance.fixed}">Fixed</span>
+                <strong id="summary-fixed-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.fixedExpense, 0, 'COMMA')}|">₩0</strong>
+            </article>
+            <article class="summary-card summary-card-variable">
+                <span class="summary-label" th:text="#{finance.variable}">Variable</span>
+                <strong id="summary-variable-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.variableExpense, 0, 'COMMA')}|">₩0</strong>
+            </article>
             <article class="summary-card summary-card-balance">
                 <span class="summary-label" th:text="#{finance.summary.balance}">Balance</span>
                 <strong id="summary-balance" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.balance, 0, 'COMMA')}|">₩0</strong>
@@ -139,6 +147,13 @@
                     <input id="finance-date" type="date" class="form-input" th:value="|${year}-${month < 10 ? '0' + month : month}-01|">
                 </div>
 
+                <div id="finance-fixed-row" class="form-group form-checkbox-group" style="display:none;">
+                    <label class="form-checkbox-label" for="finance-is-fixed">
+                        <input id="finance-is-fixed" type="checkbox" class="form-checkbox-input">
+                        <span th:text="#{finance.form.isFixed}">Fixed expense</span>
+                    </label>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="finance-payment-method" th:text="#{finance.form.paymentMethod}">Payment method</label>
                     <select id="finance-payment-method" class="form-input">
@@ -176,7 +191,10 @@
                         <div class="transaction-icon" th:text="${transaction.categoryIcon != null ? transaction.categoryIcon : '•'}">•</div>
                         <div class="transaction-body">
                             <div class="transaction-top-row">
-                                <strong class="transaction-category" th:text="${transaction.categoryName}">Category</strong>
+                                <div class="transaction-title-row">
+                                    <strong class="transaction-category" th:text="${transaction.categoryName}">Category</strong>
+                                    <span th:if="${transaction.isFixed == 'Y'}" class="badge-fixed" th:text="#{finance.fixed}">Fixed</span>
+                                </div>
                                 <span class="transaction-amount"
                                       th:classappend="${transaction.txType == 'INCOME'} ? ' income' : ' expense'"
                                       th:text="|₩${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}|">₩0</span>
@@ -215,6 +233,8 @@
         summaryIncome: /*[[#{finance.summary.income}]]*/ 'Income',
         summaryExpense: /*[[#{finance.summary.expense}]]*/ 'Expense',
         summaryBalance: /*[[#{finance.summary.balance}]]*/ 'Balance',
+        fixedExpense: /*[[#{finance.fixed}]]*/ 'Fixed',
+        variableExpense: /*[[#{finance.variable}]]*/ 'Variable',
         formTitle: /*[[#{finance.form.title}]]*/ 'Add transaction',
         formEditTitle: /*[[#{finance.form.editTitle}]]*/ 'Edit transaction',
         typeIncome: /*[[#{finance.type.income}]]*/ 'Income',
@@ -226,6 +246,7 @@
         formDescription: /*[[#{finance.form.description}]]*/ 'Notes',
         formDescriptionPlaceholder: /*[[#{finance.form.description.placeholder}]]*/ 'Add a description or memo',
         formPaymentMethod: /*[[#{finance.form.paymentMethod}]]*/ 'Payment method',
+        formIsFixed: /*[[#{finance.form.isFixed}]]*/ 'Fixed expense',
         paymentCash: /*[[#{finance.payment.cash}]]*/ 'Cash',
         paymentCard: /*[[#{finance.payment.card}]]*/ 'Card',
         paymentTransfer: /*[[#{finance.payment.transfer}]]*/ 'Transfer',

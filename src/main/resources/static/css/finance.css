@@ -30,7 +30,6 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-/* ── Hero Card (Month Header) ─────────────── */
 .finance-hero-card {
     display: flex;
     align-items: flex-end;
@@ -73,7 +72,6 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* ── Month Navigation ─────────────────────── */
 .month-nav,
 .finance-month-nav {
     display: flex;
@@ -113,11 +111,10 @@
     white-space: nowrap;
 }
 
-/* ── Summary Cards ────────────────────────── */
 .summary-cards,
 .finance-summary-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -142,6 +139,14 @@
 .summary-card-expense,
 .summary-card--expense {
     color: #d94848;
+}
+
+.summary-card-fixed {
+    color: #7c5cff;
+}
+
+.summary-card-variable {
+    color: #f59e0b;
 }
 
 .summary-card-balance,
@@ -178,7 +183,6 @@
     color: #1b1d21;
 }
 
-/* ── Dashboard Grid ───────────────────────── */
 .finance-dashboard-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
@@ -229,7 +233,6 @@
     font-weight: 500;
 }
 
-/* ── Category Chart ───────────────────────── */
 .chart-section,
 .chart-card {
     min-height: 280px;
@@ -316,7 +319,6 @@
     transition: width 0.4s ease;
 }
 
-/* ── Budget Section ───────────────────────── */
 .budget-section,
 .budget-card {
     min-height: 280px;
@@ -391,7 +393,6 @@
     color: #8b919a;
 }
 
-/* ── Panel: Form Card ─────────────────────── */
 .panel-card {
     background: transparent;
 }
@@ -435,7 +436,6 @@
     color: #8b919a;
 }
 
-/* ── Type Toggle (Income/Expense) ─────────── */
 .finance-type-toggle {
     display: flex;
     gap: 4px;
@@ -469,7 +469,6 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* ── Form Elements ────────────────────────── */
 .finance-form {
     display: flex;
     flex-direction: column;
@@ -486,6 +485,26 @@
     color: #8b919a;
     margin-bottom: 5px;
     letter-spacing: 0.02em;
+}
+
+.form-checkbox-group {
+    margin-top: -2px;
+}
+
+.form-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: #1b1d21;
+    cursor: pointer;
+}
+
+.form-checkbox-input {
+    width: 16px;
+    height: 16px;
+    accent-color: #3b6fd4;
 }
 
 .form-input {
@@ -519,7 +538,6 @@ textarea.form-input {
     line-height: 1.5;
 }
 
-/* ── Buttons ──────────────────────────────── */
 .save-row {
     display: flex;
     gap: 8px;
@@ -572,7 +590,6 @@ textarea.form-input {
     transform: none;
 }
 
-/* ── Transaction History ──────────────────── */
 .history-count {
     background: #1b1d21;
     color: #fff;
@@ -639,10 +656,25 @@ textarea.form-input {
     margin-bottom: 3px;
 }
 
+.transaction-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
 .transaction-category {
     font-size: 0.86rem;
     font-weight: 500;
     color: #1b1d21;
+}
+
+.badge-fixed {
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #f0f1f3;
+    color: #5f6570;
 }
 
 .transaction-amount {
@@ -700,7 +732,6 @@ textarea.form-input {
     background: #fdf3f3;
 }
 
-/* ── Empty State ──────────────────────────── */
 .empty-state {
     display: flex;
     align-items: center;
@@ -716,7 +747,13 @@ textarea.form-input {
     padding: 16px;
 }
 
-/* ── Responsive ───────────────────────────── */
+@media (max-width: 1280px) {
+    .summary-cards,
+    .finance-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 1180px) {
     .finance-layout {
         flex-direction: column;
@@ -766,7 +803,11 @@ textarea.form-input {
 
     .summary-cards,
     .finance-summary-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-card:last-child {
+        grid-column: 1 / -1;
     }
 
     .transaction-item {

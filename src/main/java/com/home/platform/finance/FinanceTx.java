@@ -36,6 +36,9 @@ public class FinanceTx {
     @Column(name = "PAYMENT_METHOD", length = 30)
     private String paymentMethod;
 
+    @Column(name = "IS_FIXED", nullable = false, length = 1)
+    private String isFixed = "N";
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -49,11 +52,17 @@ public class FinanceTx {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.isFixed == null || this.isFixed.isBlank()) {
+            this.isFixed = "N";
+        }
     }
 
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
+        if (this.isFixed == null || this.isFixed.isBlank()) {
+            this.isFixed = "N";
+        }
     }
 
     public Long getId()                               { return id; }
@@ -79,6 +88,9 @@ public class FinanceTx {
 
     public String getPaymentMethod()                  { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod){ this.paymentMethod = paymentMethod; }
+
+    public String getIsFixed()                        { return isFixed; }
+    public void setIsFixed(String isFixed)            { this.isFixed = isFixed; }
 
     public LocalDateTime getCreatedAt()               { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

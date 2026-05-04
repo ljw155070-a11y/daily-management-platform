@@ -63,6 +63,7 @@ public class FinanceTxService {
         tx.setTxDate(parseTxDate(validatedRequest.txDate()));
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
+        tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -82,6 +83,7 @@ public class FinanceTxService {
         tx.setTxDate(parseTxDate(validatedRequest.txDate()));
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
+        tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -102,6 +104,8 @@ public class FinanceTxService {
 
         BigDecimal totalIncome = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "INCOME", startDate, endDate));
         BigDecimal totalExpense = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate));
+        BigDecimal fixedExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "Y", startDate, endDate));
+        BigDecimal variableExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "N", startDate, endDate));
         BigDecimal balance = totalIncome.subtract(totalExpense);
 
         List<FinanceMonthlySummaryDto.CategorySummary> expenseByCategory = txRepository
@@ -115,6 +119,8 @@ public class FinanceTxService {
                 yearMonth.getMonthValue(),
                 totalIncome,
                 totalExpense,
+                fixedExpense,
+                variableExpense,
                 balance,
                 expenseByCategory
         );
@@ -131,6 +137,7 @@ public class FinanceTxService {
                 formatTxDate(tx.getTxDate()),
                 tx.getDescription(),
                 tx.getPaymentMethod(),
+                tx.getIsFixed(),
                 formatCreatedAt(tx.getCreatedAt())
         );
     }
@@ -187,6 +194,7 @@ public class FinanceTxService {
         String normalizedTxDate = normalizeTxDateText(req.txDate());
         String normalizedDescription = normalizeDescription(req.description());
         String normalizedPaymentMethod = normalizePaymentMethod(req.paymentMethod());
+        String normalizedIsFixed = normalizeIsFixed(req.isFixed(), normalizedTxType);
 
         return new FinanceTxSaveRequest(
                 normalizedTxType,
@@ -194,7 +202,8 @@ public class FinanceTxService {
                 normalizedAmount,
                 normalizedTxDate,
                 normalizedDescription,
-                normalizedPaymentMethod
+                normalizedPaymentMethod,
+                normalizedIsFixed
         );
     }
 
@@ -287,6 +296,25 @@ public class FinanceTxService {
         }
         if (!List.of("CASH", "CARD", "TRANSFER", "OTHER").contains(normalized)) {
             throw new ResponseStatusException(BAD_REQUEST, "Payment method is invalid.");
+        }
+
+        return normalized;
+    }
+
+    private String normalizeIsFixed(String isFixed, String txType) {
+        if (!"EXPENSE".equals(txType)) {
+            return "N";
+        }
+        if (isFixed == null) {
+            return "N";
+        }
+
+        String normalized = isFixed.trim().toUpperCase();
+        if (normalized.isEmpty()) {
+            return "N";
+        }
+        if (!"Y".equals(normalized) && !"N".equals(normalized)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Fixed expense flag is invalid.");
         }
 
         return normalized;

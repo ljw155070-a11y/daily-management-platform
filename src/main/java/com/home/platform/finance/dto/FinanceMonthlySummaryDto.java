@@ -8,6 +8,8 @@ public record FinanceMonthlySummaryDto(
         Integer month,
         BigDecimal totalIncome,
         BigDecimal totalExpense,
+        BigDecimal fixedExpense,
+        BigDecimal variableExpense,
         BigDecimal balance,
         List<CategorySummary> expenseByCategory
 ) {

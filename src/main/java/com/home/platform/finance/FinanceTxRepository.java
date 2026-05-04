@@ -43,4 +43,18 @@ public interface FinanceTxRepository extends JpaRepository<FinanceTx, Long> {
             @Param("txType") String txType,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0)
+            FROM FinanceTx t
+            WHERE t.userId = :userId
+              AND t.txType = 'EXPENSE'
+              AND t.isFixed = :isFixed
+              AND t.txDate BETWEEN :startDate AND :endDate
+            """)
+    BigDecimal sumExpenseByFixed(
+            @Param("userId") String userId,
+            @Param("isFixed") String isFixed,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 }
