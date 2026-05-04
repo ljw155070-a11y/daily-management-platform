@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(#{page.finance.title})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(${activeTab})}"></div>
+
+<main class="main-content">
+    <section class="page-hero page-hero--finance">
+        <h1 class="page-title" th:text="#{page.finance.title}">Finance</h1>
+        <p class="page-desc" th:text="#{page.finance.desc}">Budgeting and household money features can grow here next.</p>
+    </section>
+</main>
+
+</body>
+</html>

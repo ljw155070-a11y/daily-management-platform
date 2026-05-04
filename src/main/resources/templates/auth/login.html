@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(#{page.login.title})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(${activeTab})}"></div>
+
+<main class="main-content">
+    <section class="auth-shell">
+        <div class="auth-card">
+            <p class="auth-eyebrow" th:text="#{auth.eyebrow}">HomeHub Access</p>
+            <h1 class="auth-title" th:text="#{auth.login}">Sign in</h1>
+            <p class="auth-desc" th:text="#{auth.login.desc}">Use your account to access travel, finance, education, and health pages.</p>
+
+            <div class="auth-alert auth-alert--success" th:if="${registered}" th:text="#{auth.register.success}">Account created. Please sign in.</div>
+            <div class="auth-alert auth-alert--error" th:if="${loginError}" th:text="#{auth.login.error}">Login failed. Check your username and password.</div>
+            <div class="auth-alert auth-alert--success" th:if="${loggedOut}" th:text="#{auth.logout.success}">You have been signed out.</div>
+
+            <form class="auth-form" method="post" th:action="@{/login}">
+                <input type="hidden" name="lang" th:value="${#locale.language}">
+                <label class="auth-label" for="username" th:text="#{auth.username}">Username</label>
+                <input id="username" name="username" type="text" class="auth-input" autocomplete="username" required>
+
+                <label class="auth-label" for="password" th:text="#{auth.password}">Password</label>
+                <input id="password" name="password" type="password" class="auth-input" autocomplete="current-password" required>
+
+                <label class="auth-check">
+                    <input type="checkbox" name="remember-me">
+                    <span th:text="#{auth.rememberMe}">Keep me signed in</span>
+                </label>
+
+                <button type="submit" class="auth-submit" th:text="#{auth.login}">Sign in</button>
+            </form>
+
+            <p class="auth-switch">
+                <span th:text="#{auth.noAccount}">No account yet?</span>
+                <a th:href="@{/register(lang=${#locale.language})}" th:text="#{auth.register}">Create one</a>
+            </p>
+        </div>
+    </section>
+</main>
+
+</body>
+</html>

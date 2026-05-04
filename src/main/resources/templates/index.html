@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(#{page.home.title})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(${activeTab})}"></div>
+
+<main class="main-content">
+    <section class="hero">
+        <h1 class="hero-title" th:text="#{home.hero.title}">One home hub for your family's routines</h1>
+        <p class="hero-desc" th:text="#{home.hero.desc}">
+            Plan trips, track finances, support learning, and organize health notes in one shared place.
+        </p>
+    </section>
+
+    <section class="card-grid">
+        <a th:href="@{/travel}" class="card card--travel">
+            <div class="card-icon">&#9992;</div>
+            <h2 class="card-title" th:text="#{nav.travel}">Travel</h2>
+            <p class="card-desc" th:text="#{home.card.travel}">Save destinations, restaurants, and trip memories on the map.</p>
+        </a>
+
+        <a th:href="@{/finance}" class="card card--finance">
+            <div class="card-icon">&#128176;</div>
+            <h2 class="card-title" th:text="#{nav.finance}">Finance</h2>
+            <p class="card-desc" th:text="#{home.card.finance}">Keep income, spending, and budget plans organized.</p>
+        </a>
+
+        <a th:href="@{/education}" class="card card--education">
+            <div class="card-icon">&#128218;</div>
+            <h2 class="card-title" th:text="#{nav.education}">Education</h2>
+            <p class="card-desc" th:text="#{home.card.education}">Track learning goals, study notes, and growth records.</p>
+        </a>
+
+        <a th:href="@{/health}" class="card card--health">
+            <div class="card-icon">&#10084;</div>
+            <h2 class="card-title" th:text="#{nav.health}">Health</h2>
+            <p class="card-desc" th:text="#{home.card.health}">Manage routines, checkups, and important health reminders.</p>
+        </a>
+    </section>
+</main>
+
+</body>
+</html>

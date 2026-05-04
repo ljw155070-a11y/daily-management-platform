@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - ' + #{app.name}">Daily Hub</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+
+<body>
+<header th:fragment="header(activeTab)">
+    <div class="header-inner">
+        <a th:href="@{/}" class="logo">
+            <span class="logo-icon">&#8962;</span>
+            <span class="logo-text" th:text="#{app.name}">Daily Hub</span>
+        </a>
+
+        <nav class="nav" th:if="${activeTab != 'home'}">
+            <a th:href="@{/travel}" th:classappend="${activeTab == 'travel'} ? ' active'" class="nav-item">
+                <span class="nav-icon">&#9992;</span>
+                <span th:text="#{nav.travel}">Travel</span>
+            </a>
+            <a th:href="@{/finance}" th:classappend="${activeTab == 'finance'} ? ' active'" class="nav-item">
+                <span class="nav-icon">&#128176;</span>
+                <span th:text="#{nav.finance}">Finance</span>
+            </a>
+            <a th:href="@{/education}" th:classappend="${activeTab == 'education'} ? ' active'" class="nav-item">
+                <span class="nav-icon">&#128218;</span>
+                <span th:text="#{nav.education}">Education</span>
+            </a>
+            <a th:href="@{/health}" th:classappend="${activeTab == 'health'} ? ' active'" class="nav-item">
+                <span class="nav-icon">&#10084;</span>
+                <span th:text="#{nav.health}">Health</span>
+            </a>
+        </nav>
+
+        <div class="header-tools">
+            <div class="lang-switcher">
+                <a th:href="@{__${currentPath}__(lang='ko')}"
+                   th:classappend="${#locale.language == 'ko'} ? ' active'"
+                   class="lang-link">KO</a>
+                <a th:href="@{__${currentPath}__(lang='en')}"
+                   th:classappend="${#locale.language == 'en'} ? ' active'"
+                   class="lang-link">EN</a>
+            </div>
+
+            <div class="header-auth">
+                <span class="header-user" th:if="${authenticated}" th:text="${currentDisplayName}">Member</span>
+                <a class="header-link" th:if="${!authenticated}" th:href="@{/login}" th:text="#{auth.login}">Login</a>
+                <a class="header-link header-link--primary" th:if="${!authenticated}" th:href="@{/register}" th:text="#{auth.register}">Register</a>
+                <form th:if="${authenticated}" th:action="@{/logout}" method="post">
+                    <input type="hidden" name="lang" th:value="${#locale.language}">
+                    <button type="submit" class="header-link header-link--button" th:text="#{auth.logout}">Logout</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</header>
+</body>
+</html>

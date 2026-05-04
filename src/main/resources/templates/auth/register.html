@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(#{page.register.title})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(${activeTab})}"></div>
+
+<main class="main-content">
+    <section class="auth-shell">
+        <div class="auth-card">
+            <p class="auth-eyebrow" th:text="#{auth.eyebrow}">HomeHub Access</p>
+            <h1 class="auth-title" th:text="#{auth.register}">Create account</h1>
+            <p class="auth-desc" th:text="#{auth.register.desc}">Your travel records will be stored per account after you sign in.</p>
+
+            <div class="auth-alert auth-alert--error" th:if="${registerError}" th:text="${registerError}"></div>
+
+            <form class="auth-form" method="post" th:action="@{/register}" th:object="${registerRequest}">
+                <input type="hidden" name="lang" th:value="${#locale.language}">
+                <label class="auth-label" for="username" th:text="#{auth.username}">Username</label>
+                <input id="username" th:field="*{username}" type="text" class="auth-input" th:placeholder="#{auth.username.placeholder}" required>
+                <p class="auth-help" th:text="#{auth.username.rule}">
+                    4-20 characters using letters, numbers, dot(.), underscore(_), or hyphen(-).
+                </p>
+
+                <label class="auth-label" for="displayName" th:text="#{auth.displayName}">Display name</label>
+                <input id="displayName" th:field="*{displayName}" type="text" class="auth-input" th:placeholder="#{auth.displayName.placeholder}" required>
+                <p class="auth-help" th:text="#{auth.displayName.rule}">
+                    2-20 characters.
+                </p>
+
+                <label class="auth-label" for="password" th:text="#{auth.password}">Password</label>
+                <input id="password" th:field="*{password}" type="password" class="auth-input" th:placeholder="#{auth.password.placeholder}" required>
+                <p class="auth-help" th:text="#{auth.password.rule}">
+                    At least 8 characters.
+                </p>
+
+                <label class="auth-label" for="confirmPassword" th:text="#{auth.passwordConfirm}">Confirm password</label>
+                <input id="confirmPassword" th:field="*{confirmPassword}" type="password" class="auth-input" required>
+
+                <button type="submit" class="auth-submit" th:text="#{auth.register}">Create account</button>
+            </form>
+
+            <p class="auth-switch">
+                <span th:text="#{auth.hasAccount}">Already have an account?</span>
+                <a th:href="@{/login(lang=${#locale.language})}" th:text="#{auth.login}">Sign in</a>
+            </p>
+        </div>
+    </section>
+</main>
+
+</body>
+</html>

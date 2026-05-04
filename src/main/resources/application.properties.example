@@ -1,0 +1,25 @@
+spring.application.name=Daily Hub
+server.port=9090
+
+# Oracle DB
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+
+# JPA
+spring.jpa.database-platform=org.hibernate.dialect.OracleDialect
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Thymeleaf
+spring.thymeleaf.encoding=UTF-8
+spring.thymeleaf.cache=false
+
+# 개발 중에는 정적 리소스 캐시를 끕니다.
+spring.web.resources.cache.period=0
+
+# Kakao Maps JavaScript API Key
+# https://developers.kakao.com 에서 발급
+kakao.maps.api-key=your_kakao_maps_api_key

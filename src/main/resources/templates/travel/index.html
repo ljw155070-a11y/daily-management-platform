@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(#{page.travel.title})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(${activeTab})}"></div>
+
+<link rel="stylesheet" th:href="@{/css/travel.css}">
+
+<div class="travel-layout">
+    <div class="map-wrapper">
+        <div id="map"></div>
+        <div class="map-stats-card">
+            <div class="stat-item">
+                <span class="stat-value" id="stat-provinces">0<small>/17</small></span>
+                <span class="stat-label">방문 시·도</span>
+            </div>
+            <div class="stat-sep"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">총 장소</span>
+            </div>
+            <div class="stat-sep"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-travel">0</span>
+                <span class="stat-label">✈ 여행지</span>
+            </div>
+            <div class="stat-sep"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="stat-food">0</span>
+                <span class="stat-label">🍴 맛집</span>
+            </div>
+        </div>
+    </div>
+
+    <aside class="travel-panel">
+        <div class="panel-form">
+            <p class="panel-form-title">&#128205; <span th:text="#{travel.form.title}">Save a place</span></p>
+
+            <div class="category-toggle">
+                <button type="button" class="category-btn active" data-value="TRAVEL">&#9992; <span th:text="#{travel.category.destination}">Destination</span></button>
+                <button type="button" class="category-btn" data-value="RESTAURANT">&#127860; <span th:text="#{travel.category.restaurant}">Restaurant</span></button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="fld-place-name" th:text="#{travel.form.placeName}">Place name</label>
+                <input id="fld-place-name" type="text" class="form-input" th:placeholder="#{travel.form.placeName.placeholder}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="fld-address" th:text="#{travel.form.address}">Address</label>
+                <div class="addr-row">
+                    <input id="fld-address" type="text" class="form-input" th:placeholder="#{travel.form.address.placeholder}" readonly>
+                    <button type="button" id="btn-addr-search" class="btn-addr" th:text="#{travel.form.address.search}">Find address</button>
+                </div>
+                <p class="addr-notice" th:text="#{travel.notice.koreaOnly}">Address search supports South Korea only.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="fld-review" th:text="#{travel.form.review}">Notes</label>
+                <textarea id="fld-review" class="form-input" th:placeholder="#{travel.form.review.placeholder}"></textarea>
+            </div>
+
+            <div class="save-row">
+                <button type="button" id="btn-cancel" class="btn-cancel" style="display:none" th:text="#{common.cancel}">Cancel</button>
+                <button type="button" id="btn-save" class="btn-save" th:text="#{travel.form.save}">Save place</button>
+            </div>
+        </div>
+
+        <div class="panel-history">
+            <div class="history-header">
+                <span class="history-title" th:text="#{travel.history.title}">Saved places</span>
+                <span id="history-count" class="history-count" th:text="${places.size()}">0</span>
+            </div>
+            <div id="history-list"></div>
+        </div>
+    </aside>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const KAKAO_API_KEY = /*[[${kakaoApiKey}]]*/ '';
+    const INITIAL_PLACES = /*[[${places}]]*/ [];
+    const CSRF_TOKEN = /*[[${_csrf.token}]]*/ '';
+    const CSRF_HEADER = /*[[${_csrf.headerName}]]*/ '';
+    const MAP_LAT = /*[[${mapLat}]]*/ 36.5;
+    const MAP_LNG = /*[[${mapLng}]]*/ 127.5;
+    const MAP_LEVEL = /*[[${mapLevel}]]*/ 13;
+    const TEXT = {
+        mapMissingKeyTitle: /*[[#{travel.map.missingKey.title}]]*/ 'Kakao Maps API key is missing',
+        mapMissingKeyBody: /*[[#{travel.map.missingKey.body}]]*/ 'Add the API key to application.properties.',
+        mapFailedTitle: /*[[#{travel.map.failed.title}]]*/ 'Map failed to load',
+        mapFailedBody: /*[[#{travel.map.failed.body}]]*/ 'Check the Kakao developer console.',
+        destination: /*[[#{travel.category.destination}]]*/ 'Destination',
+        restaurant: /*[[#{travel.category.restaurant}]]*/ 'Restaurant',
+        historyEmpty: /*[[#{travel.history.empty}]]*/ 'No places saved yet.',
+        deleteLabel: /*[[#{common.delete}]]*/ 'Delete',
+        placeNameRequired: /*[[#{travel.validation.placeName}]]*/ 'Please enter a place name.',
+        addressRequired: /*[[#{travel.validation.address}]]*/ 'Please search for an address.',
+        saving: /*[[#{travel.form.saving}]]*/ 'Saving...',
+        saved: /*[[#{travel.toast.saved}]]*/ 'Place saved.',
+        saveFailed: /*[[#{travel.toast.saveFailed}]]*/ 'Failed to save the place.',
+        saveButton: /*[[#{travel.form.save}]]*/ 'Save place',
+        confirmDelete: /*[[#{travel.confirm.delete}]]*/ 'Delete this place?',
+        deleted: /*[[#{travel.toast.deleted}]]*/ 'Place deleted.',
+        deleteFailed: /*[[#{travel.toast.deleteFailed}]]*/ 'Failed to delete the place.',
+        formTitle: /*[[#{travel.form.title}]]*/ 'Save a place',
+        editFormTitle: /*[[#{travel.form.editTitle}]]*/ '장소 수정',
+        editLabel: /*[[#{common.edit}]]*/ '수정',
+        cancelLabel: /*[[#{common.cancel}]]*/ '취소',
+        editButton: /*[[#{travel.form.edit}]]*/ '수정하기',
+        editing: /*[[#{travel.form.editing}]]*/ '수정 중...',
+        updated: /*[[#{travel.toast.updated}]]*/ '수정되었습니다.',
+        updateFailed: /*[[#{travel.toast.updateFailed}]]*/ '장소 수정에 실패했습니다.'
+    };
+    /*]]>*/
+</script>
+
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+<th:block th:if="${not #strings.isEmpty(kakaoApiKey)}">
+    <script th:src="${'//dapi.kakao.com/v2/maps/sdk.js?appkey=' + kakaoApiKey + '&libraries=services,clusterer'}"></script>
+</th:block>
+
+<script th:src="@{/js/travel.js(v=7)}"></script>
+
+</body>
+</html>
