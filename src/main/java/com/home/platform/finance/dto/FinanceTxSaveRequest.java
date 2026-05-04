@@ -8,6 +8,7 @@ public record FinanceTxSaveRequest(
         BigDecimal amount,
         String txDate,
         String description,
-        String paymentMethod
+        String paymentMethod,
+        String isFixed
 ) {
 }

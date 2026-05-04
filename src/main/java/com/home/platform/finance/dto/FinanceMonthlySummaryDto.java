@@ -8,6 +8,9 @@ public record FinanceMonthlySummaryDto(
         Integer month,
         BigDecimal totalIncome,
         BigDecimal totalExpense,
+        BigDecimal fixedExpense,
+        BigDecimal variableExpense,
+        BigDecimal dailyAverage,
         BigDecimal balance,
         List<CategorySummary> expenseByCategory
 ) {
@@ -16,7 +19,8 @@ public record FinanceMonthlySummaryDto(
             String categoryName,
             String icon,
             BigDecimal amount,
-            double percentage
+            double percentage,
+            Double changePercent
     ) {
     }
 }

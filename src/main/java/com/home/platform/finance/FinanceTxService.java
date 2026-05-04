@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -63,6 +64,7 @@ public class FinanceTxService {
         tx.setTxDate(parseTxDate(validatedRequest.txDate()));
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
+        tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -82,6 +84,7 @@ public class FinanceTxService {
         tx.setTxDate(parseTxDate(validatedRequest.txDate()));
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
+        tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -99,15 +102,26 @@ public class FinanceTxService {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
         Map<Long, FinanceCategory> categoryMap = getCategoryMap(normalizedUserId);
+        YearMonth prevMonth = yearMonth.minusMonths(1);
+        LocalDate prevStartDate = prevMonth.atDay(1);
+        LocalDate prevEndDate = prevMonth.atEndOfMonth();
+        Map<Long, BigDecimal> previousExpenseMap = txRepository
+                .sumByCategoryAndPeriod(normalizedUserId, "EXPENSE", prevStartDate, prevEndDate)
+                .stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> defaultIfNull((BigDecimal) row[1])));
 
         BigDecimal totalIncome = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "INCOME", startDate, endDate));
         BigDecimal totalExpense = defaultIfNull(txRepository.sumByTypeAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate));
+        BigDecimal fixedExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "Y", startDate, endDate));
+        BigDecimal variableExpense = defaultIfNull(txRepository.sumExpenseByFixed(normalizedUserId, "N", startDate, endDate));
+        int elapsedDays = calculateElapsedDays(yearMonth);
+        BigDecimal dailyAverage = totalExpense.divide(BigDecimal.valueOf(elapsedDays), 0, RoundingMode.HALF_UP);
         BigDecimal balance = totalIncome.subtract(totalExpense);
 
         List<FinanceMonthlySummaryDto.CategorySummary> expenseByCategory = txRepository
                 .sumByCategoryAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate)
                 .stream()
-                .map(row -> toCategorySummary(row, categoryMap, totalExpense))
+                .map(row -> toCategorySummary(row, categoryMap, totalExpense, previousExpenseMap))
                 .toList();
 
         return new FinanceMonthlySummaryDto(
@@ -115,11 +129,26 @@ public class FinanceTxService {
                 yearMonth.getMonthValue(),
                 totalIncome,
                 totalExpense,
+                fixedExpense,
+                variableExpense,
+                dailyAverage,
                 balance,
                 expenseByCategory
         );
     }
 
+    private int calculateElapsedDays(YearMonth yearMonth) {
+        LocalDate today = LocalDate.now();
+        YearMonth currentYearMonth = YearMonth.from(today);
+
+        if (yearMonth.equals(currentYearMonth)) {
+            return today.getDayOfMonth();
+        }
+        if (yearMonth.isBefore(currentYearMonth)) {
+            return yearMonth.lengthOfMonth();
+        }
+        return 1;
+    }
     private FinanceTxDto toDto(FinanceTx tx, FinanceCategory category) {
         return new FinanceTxDto(
                 tx.getId(),
@@ -131,6 +160,7 @@ public class FinanceTxService {
                 formatTxDate(tx.getTxDate()),
                 tx.getDescription(),
                 tx.getPaymentMethod(),
+                tx.getIsFixed(),
                 formatCreatedAt(tx.getCreatedAt())
         );
     }
@@ -138,11 +168,19 @@ public class FinanceTxService {
     private FinanceMonthlySummaryDto.CategorySummary toCategorySummary(
             Object[] row,
             Map<Long, FinanceCategory> categoryMap,
-            BigDecimal totalExpense
+            BigDecimal totalExpense,
+            Map<Long, BigDecimal> previousExpenseMap
     ) {
         Long categoryId = (Long) row[0];
         BigDecimal amount = defaultIfNull((BigDecimal) row[1]);
         FinanceCategory category = categoryMap.get(categoryId);
+        BigDecimal previousAmount = defaultIfNull(previousExpenseMap.get(categoryId));
+        Double changePercent = previousAmount.compareTo(BigDecimal.ZERO) == 0
+                ? null
+                : amount.subtract(previousAmount)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(previousAmount, 2, RoundingMode.HALF_UP)
+                .doubleValue();
         double percentage = BigDecimal.ZERO.compareTo(totalExpense) == 0
                 ? 0d
                 : amount.multiply(BigDecimal.valueOf(100))
@@ -154,7 +192,8 @@ public class FinanceTxService {
                 category != null ? category.getCatName() : null,
                 category != null ? category.getIcon() : null,
                 amount,
-                percentage
+                percentage,
+                changePercent
         );
     }
 
@@ -187,6 +226,7 @@ public class FinanceTxService {
         String normalizedTxDate = normalizeTxDateText(req.txDate());
         String normalizedDescription = normalizeDescription(req.description());
         String normalizedPaymentMethod = normalizePaymentMethod(req.paymentMethod());
+        String normalizedIsFixed = normalizeIsFixed(req.isFixed(), normalizedTxType);
 
         return new FinanceTxSaveRequest(
                 normalizedTxType,
@@ -194,7 +234,8 @@ public class FinanceTxService {
                 normalizedAmount,
                 normalizedTxDate,
                 normalizedDescription,
-                normalizedPaymentMethod
+                normalizedPaymentMethod,
+                normalizedIsFixed
         );
     }
 
@@ -287,6 +328,25 @@ public class FinanceTxService {
         }
         if (!List.of("CASH", "CARD", "TRANSFER", "OTHER").contains(normalized)) {
             throw new ResponseStatusException(BAD_REQUEST, "Payment method is invalid.");
+        }
+
+        return normalized;
+    }
+
+    private String normalizeIsFixed(String isFixed, String txType) {
+        if (!"EXPENSE".equals(txType)) {
+            return "N";
+        }
+        if (isFixed == null) {
+            return "N";
+        }
+
+        String normalized = isFixed.trim().toUpperCase();
+        if (normalized.isEmpty()) {
+            return "N";
+        }
+        if (!"Y".equals(normalized) && !"N".equals(normalized)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Fixed expense flag is invalid.");
         }
 
         return normalized;

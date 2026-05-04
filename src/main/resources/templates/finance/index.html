@@ -19,13 +19,14 @@
                 </h1>
                 <p class="finance-page-desc" th:text="#{page.finance.desc}">Track income and expenses, manage budgets, and view monthly analysis.</p>
             </div>
-            <div class="finance-month-nav month-nav">
-                <a class="month-nav-btn" data-direction="-1" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}" th:text="#{finance.month.prev}">Previous</a>
-                <div class="month-nav-current">
-                    <span th:text="${year}">2025</span><span>년 </span><span th:text="${month}">5</span><span>월</span>
-                </div>
-                <a class="month-nav-btn" data-direction="1" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}" th:text="#{finance.month.next}">Next</a>
+        </div>
+
+        <div class="finance-month-nav month-nav">
+            <a class="month-nav-btn" data-direction="-1" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}" th:text="#{finance.month.prev}">Previous</a>
+            <div class="month-nav-current">
+                <span th:text="${year}">2025</span><span>년 </span><span th:text="${month}">5</span><span>월</span>
             </div>
+            <a class="month-nav-btn" data-direction="1" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}" th:text="#{finance.month.next}">Next</a>
         </div>
 
         <div id="summary-cards" class="finance-summary-grid summary-cards">
@@ -36,6 +37,15 @@
             <article class="summary-card summary-card-expense">
                 <span class="summary-label" th:text="#{finance.summary.expense}">Expense</span>
                 <strong id="summary-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.totalExpense, 0, 'COMMA')}|">₩0</strong>
+                <span id="summary-daily" class="summary-sub" th:text="|#{finance.summary.dailyAvg} ₩${#numbers.formatInteger(summary.dailyAverage, 0, 'COMMA')}|">일평균 ₩0</span>
+            </article>
+            <article class="summary-card summary-card-fixed">
+                <span class="summary-label" th:text="#{finance.fixed}">Fixed</span>
+                <strong id="summary-fixed-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.fixedExpense, 0, 'COMMA')}|">₩0</strong>
+            </article>
+            <article class="summary-card summary-card-variable">
+                <span class="summary-label" th:text="#{finance.variable}">Variable</span>
+                <strong id="summary-variable-expense" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.variableExpense, 0, 'COMMA')}|">₩0</strong>
             </article>
             <article class="summary-card summary-card-balance">
                 <span class="summary-label" th:text="#{finance.summary.balance}">Balance</span>
@@ -43,8 +53,14 @@
             </article>
         </div>
 
+        <div class="dashboard-tab-bar" role="tablist" aria-label="dashboard tabs">
+            <button type="button" class="dashboard-tab active" data-tab="chart">지출 분석</button>
+            <button type="button" class="dashboard-tab" data-tab="budget">예산</button>
+            <button type="button" class="dashboard-tab" data-tab="calendar" th:text="#{finance.tab.calendar}">달력</button>
+        </div>
+
         <div class="finance-dashboard-grid">
-            <article class="dashboard-card chart-card">
+            <article id="dashboard-chart-panel" class="dashboard-card chart-card dashboard-panel active" data-panel="chart">
                 <div class="card-head">
                     <div>
                         <p class="card-kicker" th:text="#{finance.chart.title}">Spending by category</p>
@@ -72,7 +88,7 @@
                 <div id="category-chart-empty" class="empty-state" th:text="#{finance.history.empty}">No transactions this month.</div>
             </article>
 
-            <article class="dashboard-card budget-card">
+            <article id="dashboard-budget-panel" class="dashboard-card budget-card dashboard-panel" data-panel="budget">
                 <div class="card-head">
                     <div>
                         <p class="card-kicker" th:text="#{finance.budget.title}">Budget</p>
@@ -129,6 +145,11 @@
                     </select>
                 </div>
 
+                <div id="custom-category-group" class="form-group" style="display:none">
+                    <label class="form-label">직접 입력</label>
+                    <input id="finance-custom-category" class="form-input" placeholder="카테고리명을 입력하세요" maxlength="100">
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="finance-amount" th:text="#{finance.form.amount}">Amount</label>
                     <input id="finance-amount" type="number" step="0.01" min="0" class="form-input" th:placeholder="#{finance.form.amount.placeholder}">
@@ -137,6 +158,13 @@
                 <div class="form-group">
                     <label class="form-label" for="finance-date" th:text="#{finance.form.date}">Date</label>
                     <input id="finance-date" type="date" class="form-input" th:value="|${year}-${month < 10 ? '0' + month : month}-01|">
+                </div>
+
+                <div id="finance-fixed-row" class="form-group form-checkbox-group" style="display:none;">
+                    <label class="form-checkbox-label" for="finance-is-fixed">
+                        <input id="finance-is-fixed" type="checkbox" class="form-checkbox-input">
+                        <span th:text="#{finance.form.isFixed}">Fixed expense</span>
+                    </label>
                 </div>
 
                 <div class="form-group">
@@ -170,13 +198,32 @@
                 <span class="history-count" th:text="${transactions.size()}">0</span>
             </div>
 
+            <div class="history-filter">
+                <input id="finance-search" class="form-input" th:placeholder="#{finance.search.placeholder}" placeholder="메모 검색..." style="font-size:0.82rem; padding:8px 10px;">
+                <div class="filter-row">
+                    <select id="filter-category" class="form-input" style="font-size:0.78rem; padding:6px 8px;">
+                        <option value="" th:text="#{finance.filter.allCategory}">전체 카테고리</option>
+                    </select>
+                    <select id="filter-payment" class="form-input" style="font-size:0.78rem; padding:6px 8px;">
+                        <option value="" th:text="#{finance.filter.allPayment}">전체 결제수단</option>
+                        <option value="CASH" th:text="#{finance.payment.cash}">현금</option>
+                        <option value="CARD" th:text="#{finance.payment.card}">카드</option>
+                        <option value="TRANSFER" th:text="#{finance.payment.transfer}">계좌이체</option>
+                        <option value="OTHER" th:text="#{finance.payment.other}">기타</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="transaction-history-list" class="transaction-history-list">
                 <article class="transaction-item" th:each="transaction : ${transactions}">
                     <div class="transaction-main">
                         <div class="transaction-icon" th:text="${transaction.categoryIcon != null ? transaction.categoryIcon : '•'}">•</div>
                         <div class="transaction-body">
                             <div class="transaction-top-row">
-                                <strong class="transaction-category" th:text="${transaction.categoryName}">Category</strong>
+                                <div class="transaction-title-row">
+                                    <strong class="transaction-category" th:text="${transaction.categoryName}">Category</strong>
+                                    <span th:if="${transaction.isFixed == 'Y'}" class="badge-fixed" th:text="#{finance.fixed}">Fixed</span>
+                                </div>
                                 <span class="transaction-amount"
                                       th:classappend="${transaction.txType == 'INCOME'} ? ' income' : ' expense'"
                                       th:text="|₩${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}|">₩0</span>
@@ -214,7 +261,10 @@
         pageDesc: /*[[#{page.finance.desc}]]*/ 'Track income and expenses, manage budgets, and view monthly analysis.',
         summaryIncome: /*[[#{finance.summary.income}]]*/ 'Income',
         summaryExpense: /*[[#{finance.summary.expense}]]*/ 'Expense',
+        summaryDailyAvg: /*[[#{finance.summary.dailyAvg}]]*/ 'Daily avg.',
         summaryBalance: /*[[#{finance.summary.balance}]]*/ 'Balance',
+        fixedExpense: /*[[#{finance.fixed}]]*/ 'Fixed',
+        variableExpense: /*[[#{finance.variable}]]*/ 'Variable',
         formTitle: /*[[#{finance.form.title}]]*/ 'Add transaction',
         formEditTitle: /*[[#{finance.form.editTitle}]]*/ 'Edit transaction',
         typeIncome: /*[[#{finance.type.income}]]*/ 'Income',
@@ -226,6 +276,7 @@
         formDescription: /*[[#{finance.form.description}]]*/ 'Notes',
         formDescriptionPlaceholder: /*[[#{finance.form.description.placeholder}]]*/ 'Add a description or memo',
         formPaymentMethod: /*[[#{finance.form.paymentMethod}]]*/ 'Payment method',
+        formIsFixed: /*[[#{finance.form.isFixed}]]*/ 'Fixed expense',
         paymentCash: /*[[#{finance.payment.cash}]]*/ 'Cash',
         paymentCard: /*[[#{finance.payment.card}]]*/ 'Card',
         paymentTransfer: /*[[#{finance.payment.transfer}]]*/ 'Transfer',
@@ -236,6 +287,9 @@
         formEditing: /*[[#{finance.form.editing}]]*/ 'Updating...',
         historyTitle: /*[[#{finance.history.title}]]*/ 'Transactions',
         historyEmpty: /*[[#{finance.history.empty}]]*/ 'No transactions this month.',
+        filterAllCategory: /*[[#{finance.filter.allCategory}]]*/ 'All categories',
+        filterAllPayment: /*[[#{finance.filter.allPayment}]]*/ 'All methods',
+        searchPlaceholder: /*[[#{finance.search.placeholder}]]*/ 'Search notes...',
         toastSaved: /*[[#{finance.toast.saved}]]*/ 'Transaction saved.',
         toastSaveFailed: /*[[#{finance.toast.saveFailed}]]*/ 'Failed to save.',
         toastUpdated: /*[[#{finance.toast.updated}]]*/ 'Transaction updated.',
@@ -248,6 +302,7 @@
         budgetSpent: /*[[#{finance.budget.spent}]]*/ 'Spent',
         budgetRemaining: /*[[#{finance.budget.remaining}]]*/ 'Remaining',
         chartTitle: /*[[#{finance.chart.title}]]*/ 'Spending by category',
+        comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
         monthPrev: /*[[#{finance.month.prev}]]*/ 'Previous',
         monthNext: /*[[#{finance.month.next}]]*/ 'Next',
         unit: /*[[#{finance.unit}]]*/ 'KRW',
