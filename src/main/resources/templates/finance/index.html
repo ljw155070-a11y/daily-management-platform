@@ -196,6 +196,22 @@
                 <span class="history-count" th:text="${transactions.size()}">0</span>
             </div>
 
+            <div class="history-filter">
+                <input id="finance-search" class="form-input" th:placeholder="#{finance.search.placeholder}" placeholder="메모 검색..." style="font-size:0.82rem; padding:8px 10px;">
+                <div class="filter-row">
+                    <select id="filter-category" class="form-input" style="font-size:0.78rem; padding:6px 8px;">
+                        <option value="" th:text="#{finance.filter.allCategory}">전체 카테고리</option>
+                    </select>
+                    <select id="filter-payment" class="form-input" style="font-size:0.78rem; padding:6px 8px;">
+                        <option value="" th:text="#{finance.filter.allPayment}">전체 결제수단</option>
+                        <option value="CASH" th:text="#{finance.payment.cash}">현금</option>
+                        <option value="CARD" th:text="#{finance.payment.card}">카드</option>
+                        <option value="TRANSFER" th:text="#{finance.payment.transfer}">계좌이체</option>
+                        <option value="OTHER" th:text="#{finance.payment.other}">기타</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="transaction-history-list" class="transaction-history-list">
                 <article class="transaction-item" th:each="transaction : ${transactions}">
                     <div class="transaction-main">
@@ -268,6 +284,9 @@
         formEditing: /*[[#{finance.form.editing}]]*/ 'Updating...',
         historyTitle: /*[[#{finance.history.title}]]*/ 'Transactions',
         historyEmpty: /*[[#{finance.history.empty}]]*/ 'No transactions this month.',
+        filterAllCategory: /*[[#{finance.filter.allCategory}]]*/ 'All categories',
+        filterAllPayment: /*[[#{finance.filter.allPayment}]]*/ 'All methods',
+        searchPlaceholder: /*[[#{finance.search.placeholder}]]*/ 'Search notes...',
         toastSaved: /*[[#{finance.toast.saved}]]*/ 'Transaction saved.',
         toastSaveFailed: /*[[#{finance.toast.saveFailed}]]*/ 'Failed to save.',
         toastUpdated: /*[[#{finance.toast.updated}]]*/ 'Transaction updated.',

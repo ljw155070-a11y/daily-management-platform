@@ -861,3 +861,19 @@ textarea.form-input {
         align-items: flex-start;
     }
 }
+
+.history-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 6px;
+}
+
+.filter-row .form-input {
+    flex: 1;
+}

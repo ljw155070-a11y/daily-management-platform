@@ -20,6 +20,9 @@ const els = {
   historyList: document.getElementById("transaction-history-list"),
   historyEmpty: document.getElementById("transaction-history-empty"),
   historyCount: document.querySelector(".history-count"),
+  searchInput: document.getElementById("finance-search"),
+  filterCategory: document.getElementById("filter-category"),
+  filterPayment: document.getElementById("filter-payment"),
   form: document.getElementById("finance-form"),
   editId: document.getElementById("finance-edit-id"),
   category: document.getElementById("finance-category"),
@@ -45,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
+  populateFilterCategories();
   setDashboardTab("chart");
   renderAll();
   bindEvents();
@@ -133,7 +137,7 @@ function renderBudgetBars() {
 function renderHistory() {
   if (!els.historyList) return;
 
-  const sorted = [...txList].sort((a, b) => compareTransactions(b, a));
+  const sorted = getFilteredTransactions().sort((a, b) => compareTransactions(b, a));
   els.historyList.innerHTML = sorted.map((tx) => {
     const icon = tx.categoryIcon || "•";
     const categoryName = tx.categoryName || TEXT.formCategory;
@@ -189,6 +193,10 @@ function bindEvents() {
 
   els.save?.addEventListener("click", handleSubmit);
   els.cancel?.addEventListener("click", () => resetForm());
+  els.searchInput?.addEventListener("input", () => renderHistory());
+  els.filterCategory?.addEventListener("change", () => renderHistory());
+  els.filterPayment?.addEventListener("change", () => renderHistory());
+
 
   els.dashboardTabs.forEach((button) => {
     button.addEventListener("click", () => {
@@ -293,6 +301,7 @@ async function resolveCategoryId(formData) {
   const created = await response.json();
   categoryList.push(created);
   populateCategoryOptions(currentTxType, created.id);
+  populateFilterCategories();
   syncCustomCategoryVisibility();
   return created.id;
 }
@@ -369,6 +378,37 @@ function resetForm() {
   if (els.cancel) els.cancel.style.display = "none";
 }
 
+function populateFilterCategories() {
+  if (!els.filterCategory) return;
+
+  const selectedValue = els.filterCategory.value || "";
+  const categories = [...categoryList].sort((a, b) => {
+    if ((a.catType || "") !== (b.catType || "")) {
+      return String(a.catType || "").localeCompare(String(b.catType || ""));
+    }
+    return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+  });
+
+  els.filterCategory.innerHTML = [
+    `<option value="">${escHtml(TEXT.filterAllCategory)}</option>`,
+    ...categories.map((category) => `<option value="${category.id}">${escHtml(category.catName)}</option>`),
+  ].join("");
+  els.filterCategory.value = categories.some((category) => String(category.id) === selectedValue) ? selectedValue : "";
+}
+
+function getFilteredTransactions() {
+  const keyword = (els.searchInput?.value || "").trim().toLocaleLowerCase();
+  const categoryId = els.filterCategory?.value || "";
+  const paymentMethod = els.filterPayment?.value || "";
+
+  return txList.filter((tx) => {
+    const description = String(tx.description || "").toLocaleLowerCase();
+    const matchesKeyword = !keyword || description.includes(keyword);
+    const matchesCategory = !categoryId || String(tx.categoryId) === categoryId;
+    const matchesPayment = !paymentMethod || String(tx.paymentMethod || "") === paymentMethod;
+    return matchesKeyword && matchesCategory && matchesPayment;
+  });
+}
 function populateCategoryOptions(txType, selectedId) {
   if (!els.category) return;
 
