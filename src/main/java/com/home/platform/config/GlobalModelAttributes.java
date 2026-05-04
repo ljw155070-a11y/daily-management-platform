@@ -48,4 +48,18 @@ public class GlobalModelAttributes {
     public String currentPath(HttpServletRequest request) {
         return request.getRequestURI();
     }
+
+    @ModelAttribute("currentPageKey")
+    public String currentPageKey(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri == null || uri.isBlank() || "/".equals(uri)) {
+            return "home";
+        }
+
+        String normalized = uri.endsWith("/") && uri.length() > 1
+                ? uri.substring(0, uri.length() - 1)
+                : uri;
+
+        return normalized;
+    }
 }
