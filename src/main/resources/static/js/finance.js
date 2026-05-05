@@ -531,6 +531,7 @@ function bindEvents() {
     if (target.dataset.action === "edit") startEdit(id);
     if (target.dataset.action === "delete") deleteTransaction(id);
   });
+}
 
 
 async function handleSubmit() {
