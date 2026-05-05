@@ -25,9 +25,32 @@ public class PublicTravelAttractionService {
 
     private static final Logger log = LoggerFactory.getLogger(PublicTravelAttractionService.class);
     private static final Duration AREA_CACHE_TTL = Duration.ofHours(1);
+    private static final List<String> ALL_AREA_CODES = List.of(
+            "1", "2", "3", "4", "5", "6", "7", "8",
+            "31", "32", "33", "34", "35", "36", "37", "38", "39");
+    private static final Map<String, BoundingBox> AREA_BOUNDS = Map.ofEntries(
+            Map.entry("1", new BoundingBox(37.40, 37.72, 126.76, 127.20)),
+            Map.entry("2", new BoundingBox(37.32, 37.85, 126.36, 126.95)),
+            Map.entry("3", new BoundingBox(35.67, 36.02, 128.42, 128.76)),
+            Map.entry("4", new BoundingBox(35.75, 36.02, 128.46, 128.71)),
+            Map.entry("5", new BoundingBox(35.05, 35.25, 126.75, 127.00)),
+            Map.entry("6", new BoundingBox(35.02, 35.40, 128.75, 129.35)),
+            Map.entry("7", new BoundingBox(36.18, 36.55, 127.18, 127.55)),
+            Map.entry("8", new BoundingBox(33.10, 33.65, 126.10, 126.98)),
+            Map.entry("31", new BoundingBox(36.70, 38.35, 126.25, 127.85)),
+            Map.entry("32", new BoundingBox(37.00, 38.65, 127.05, 129.40)),
+            Map.entry("33", new BoundingBox(36.00, 37.50, 127.15, 128.75)),
+            Map.entry("34", new BoundingBox(35.90, 37.25, 125.95, 127.75)),
+            Map.entry("35", new BoundingBox(35.45, 37.35, 127.80, 129.60)),
+            Map.entry("36", new BoundingBox(34.45, 35.90, 127.45, 129.35)),
+            Map.entry("37", new BoundingBox(35.20, 36.45, 126.35, 127.95)),
+            Map.entry("38", new BoundingBox(33.85, 35.60, 125.05, 127.95)),
+            Map.entry("39", new BoundingBox(33.10, 33.65, 126.10, 126.98))
+    );
 
     private final PublicTravelAttractionRepository repository;
     private final TourApiService tourApiService;
+    private final SgisService sgisService;
 
     // Set to true once at startup (or after sync) so we never run COUNT(*) per request again
     private final AtomicBoolean seeded = new AtomicBoolean(false);
@@ -36,16 +59,35 @@ public class PublicTravelAttractionService {
     private final Map<String, List<TourApiAttractionDto>> areaCache = new ConcurrentHashMap<>();
     private volatile Instant areaCacheExpiry = Instant.MIN;
 
-    public PublicTravelAttractionService(PublicTravelAttractionRepository repository, TourApiService tourApiService) {
+    public PublicTravelAttractionService(PublicTravelAttractionRepository repository,
+                                         TourApiService tourApiService,
+                                         SgisService sgisService) {
         this.repository = repository;
         this.tourApiService = tourApiService;
+        this.sgisService = sgisService;
     }
 
     @PostConstruct
     public void init() {
         if (repository.countByActiveFlag("Y") > 0) {
             seeded.set(true);
+            // Pre-warm all 17 area caches in background — after this every region click is instant
+            Thread prewarmer = new Thread(this::prewarmAllAreaCaches, "attraction-cache-prewarmer");
+            prewarmer.setDaemon(true);
+            prewarmer.start();
         }
+    }
+
+    private void prewarmAllAreaCaches() {
+        log.info("Pre-warming attraction cache for {} areas...", ALL_AREA_CODES.size());
+        for (String areaCode : ALL_AREA_CODES) {
+            try {
+                getFromCacheOrDb(areaCode);
+            } catch (Exception e) {
+                log.warn("Cache prewarm failed for area {}: {}", areaCode, e.getMessage());
+            }
+        }
+        log.info("Attraction cache pre-warm complete.");
     }
 
     public boolean isAvailable() {
@@ -154,6 +196,11 @@ public class PublicTravelAttractionService {
             areaCacheExpiry = Instant.MIN;
             seeded.set(true);
 
+            // Re-warm cache after sync so next user click is still instant
+            Thread rewarmer = new Thread(this::prewarmAllAreaCaches, "attraction-cache-rewarmer");
+            rewarmer.setDaemon(true);
+            rewarmer.start();
+
             log.info("Sync complete: {} active items.", latestByContentId.size());
             return latestByContentId.size();
         } catch (Exception e) {
@@ -175,11 +222,9 @@ public class PublicTravelAttractionService {
             }
         }
 
-        List<TourApiAttractionDto> result = repository
-                .findTop300ByAreaCodeAndActiveFlag(areaCode, "Y")
-                .stream()
-                .map(this::toDto)
-                .toList();
+        List<PublicTravelAttraction> entities = repository.findTop300ByAreaCodeAndActiveFlag(areaCode, "Y");
+        repairSuspiciousCoordinates(entities, areaCode);
+        List<TourApiAttractionDto> result = entities.stream().map(this::toDto).toList();
 
         areaCache.put(areaCode, result);
         if (!Instant.now().isBefore(areaCacheExpiry)) {
@@ -203,6 +248,7 @@ public class PublicTravelAttractionService {
         entity.setAreaCode(trimToLength(dto.areaCode(), 20));
         entity.setActive(true);
         entity.setLastSyncedAt(syncedAt);
+        repairSuspiciousCoordinate(entity, entity.getAreaCode());
     }
 
     private TourApiAttractionDto toDto(PublicTravelAttraction entity) {
@@ -292,5 +338,55 @@ public class PublicTravelAttractionService {
         }
         String message = current.getMessage();
         return (message == null || message.isBlank()) ? current.getClass().getSimpleName() : message;
+    }
+
+    private void repairSuspiciousCoordinates(List<PublicTravelAttraction> entities, String areaCode) {
+        List<PublicTravelAttraction> changed = new ArrayList<>();
+        for (PublicTravelAttraction entity : entities) {
+            if (repairSuspiciousCoordinate(entity, areaCode)) {
+                changed.add(entity);
+            }
+        }
+        if (!changed.isEmpty()) {
+            repository.saveAll(changed);
+        }
+    }
+
+    private boolean repairSuspiciousCoordinate(PublicTravelAttraction entity, String areaCode) {
+        if (entity == null || !needsCoordinateRepair(areaCode, entity.getLatitude(), entity.getLongitude())) {
+            return false;
+        }
+        if (entity.getAddress() == null || entity.getAddress().isBlank()) {
+            return false;
+        }
+
+        try {
+            SgisService.GeoPoint geocoded = sgisService.geocodeAddressWgs84(entity.getAddress());
+            if (geocoded == null || needsCoordinateRepair(areaCode, geocoded.lat(), geocoded.lng())) {
+                return false;
+            }
+
+            entity.setLatitude(geocoded.lat());
+            entity.setLongitude(geocoded.lng());
+            log.info("Repaired attraction coordinates: {} -> ({}, {})", entity.getTitle(), geocoded.lat(), geocoded.lng());
+            return true;
+        } catch (Exception e) {
+            log.warn("Failed to repair attraction coordinates for {}: {}", entity.getTitle(), e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean needsCoordinateRepair(String areaCode, Double latitude, Double longitude) {
+        if (latitude == null || longitude == null) {
+            return true;
+        }
+        BoundingBox bounds = AREA_BOUNDS.get(areaCode);
+        return bounds != null && !bounds.contains(latitude, longitude);
+    }
+
+    private record BoundingBox(double minLat, double maxLat, double minLng, double maxLng) {
+        boolean contains(double lat, double lng) {
+            return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+        }
     }
 }

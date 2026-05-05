@@ -59,15 +59,15 @@ public class TourApiService {
             Map.entry("충북", "33"),
             Map.entry("충청남도", "34"),
             Map.entry("충남", "34"),
-            Map.entry("전북특별자치도", "35"),
-            Map.entry("전라북도", "35"),
-            Map.entry("전북", "35"),
-            Map.entry("전라남도", "36"),
-            Map.entry("전남", "36"),
-            Map.entry("경상북도", "37"),
-            Map.entry("경북", "37"),
-            Map.entry("경상남도", "38"),
-            Map.entry("경남", "38"),
+            Map.entry("경상북도", "35"),  // TourAPI 실제 코드: 35=경북
+            Map.entry("경북", "35"),
+            Map.entry("경상남도", "36"),  // TourAPI 실제 코드: 36=경남
+            Map.entry("경남", "36"),
+            Map.entry("전북특별자치도", "37"),  // TourAPI 실제 코드: 37=전북
+            Map.entry("전라북도", "37"),
+            Map.entry("전북", "37"),
+            Map.entry("전라남도", "38"),  // TourAPI 실제 코드: 38=전남
+            Map.entry("전남", "38"),
             Map.entry("제주특별자치도", "39"),
             Map.entry("제주도", "39"),
             Map.entry("제주", "39")

@@ -18,6 +18,9 @@ const publicAttractions = [];
 const allPublicAttractions = [];
 const regionFetchCache = new Map(); // key: province, value: { data, expiry }
 const REGION_CACHE_TTL_MS = 30 * 60 * 1000;
+const PUBLIC_CARD_BATCH = 30;
+let publicListRenderedCount = 0;
+let publicListObserver = null;
 const markerMap = new Map();
 const publicMarkerMap = new Map();
 let selectedMarkerOverlay = null;
@@ -25,6 +28,7 @@ let selectedMarkerOverlay = null;
 let selectedPublicAttractionId = null;
 let mapRegisterOverlay = null;
 let lastPolygonClickMs = 0;
+let regionLoadVersion = 0; // incremented on every loadAttractionsByRegion call; stale calls self-cancel
 let selectedMapLatLng = null;
 let selectedExistingImageUrl = "";
 
@@ -160,7 +164,7 @@ function initMap() {
 
   kakao.maps.event.addListener(map, "click", (mouseEvent) => {
     hideMapRegisterOverlay();
-    if (Date.now() - lastPolygonClickMs < 150) return; // 폴리곤 클릭이 직전에 처리됨
+    if (Date.now() - lastPolygonClickMs < 300) return; // 폴리곤 클릭 직후 map click 억제
     loadAttractionsByLocation(mouseEvent.latLng);
   });
   kakao.maps.event.addListener(map, "rightclick", (mouseEvent) => {
@@ -284,24 +288,34 @@ function addSavedMarker(place) {
   }
 }
 
-function addPublicMarker(attraction) {
+// Shared MarkerImage — created once and reused for every public attraction marker
+let _publicMarkerImage = null;
+function getPublicMarkerImage() {
+  if (!_publicMarkerImage) {
+    const svg = encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">' +
+        '<path fill="#f97316" d="M15 0C7.27 0 1 6.27 1 14c0 11.2 14 28 14 28s14-16.8 14-28C29 6.27 22.73 0 15 0z"/>' +
+        '<circle cx="15" cy="14" r="6" fill="white"/>' +
+      "</svg>"
+    );
+    _publicMarkerImage = new kakao.maps.MarkerImage(
+      "data:image/svg+xml;charset=UTF-8," + svg,
+      new kakao.maps.Size(30, 42),
+      { offset: new kakao.maps.Point(15, 42) }
+    );
+  }
+  return _publicMarkerImage;
+}
+
+// Creates marker + infowindow and stores in publicMarkerMap.
+// nodraw=true: add to clusterer without triggering redraw (call clusterer.redraw() manually after batch).
+// nodraw=false (default): add and redraw immediately (for single-marker additions).
+function addPublicMarker(attraction, nodraw = false) {
   if (!map || !attraction.latitude || !attraction.longitude || publicMarkerMap.has(attraction.contentId)) {
     return;
   }
 
-  const imageSize = new kakao.maps.Size(30, 42);
-  const imageOption = { offset: new kakao.maps.Point(15, 42) };
-  const svg = encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">' +
-      '<path fill="#f97316" d="M15 0C7.27 0 1 6.27 1 14c0 11.2 14 28 14 28s14-16.8 14-28C29 6.27 22.73 0 15 0z"/>' +
-      '<circle cx="15" cy="14" r="6" fill="white"/>' +
-    "</svg>"
-  );
-  const markerImage = new kakao.maps.MarkerImage(
-    "data:image/svg+xml;charset=UTF-8," + svg,
-    imageSize,
-    imageOption
-  );
+  const markerImage = getPublicMarkerImage();
 
   const position = new kakao.maps.LatLng(attraction.latitude, attraction.longitude);
   const marker = new kakao.maps.Marker({ position, image: markerImage });
@@ -330,7 +344,7 @@ function addPublicMarker(attraction) {
   publicMarkerMap.set(attraction.contentId, { marker, infowindow });
 
   if (publicClusterer) {
-    publicClusterer.addMarker(marker);
+    publicClusterer.addMarker(marker, nodraw);
   } else {
     marker.setMap(map);
   }
@@ -495,7 +509,11 @@ function drawProvinceOverlays() {
       });
 
       kakao.maps.event.addListener(polygon, "click", () => {
-        lastPolygonClickMs = Date.now();
+        const now = Date.now();
+        // 경계 근처 클릭 시 인접 폴리곤 click이 연속 발화하는 것을 막는다.
+        // 첫 번째 폴리곤 click만 처리하고, 50ms 이내 중복 발화는 무시.
+        if (now - lastPolygonClickMs < 50) return;
+        lastPolygonClickMs = now;
         const normalizedRegionName = normalizeRegionName(region.name);
         showRegionToast(normalizedRegionName, isCity);
         loadAttractionsByRegion(normalizedRegionName);
@@ -691,12 +709,65 @@ function renderHistory() {
   });
 }
 
+function buildPublicCardHtml(attraction) {
+  return `<div class="public-item ${String(attraction.contentId) === String(selectedPublicAttractionId) ? "is-active" : ""}" data-content-id="${escHtml(attraction.contentId)}">
+    ${attraction.imageUrl
+      ? `<img class="public-thumb" src="${escHtml(attraction.imageUrl)}" alt="${escHtml(attraction.title)}" loading="lazy">`
+      : '<div class="public-thumb public-thumb--empty">TRIP</div>'}
+    <div class="public-body">
+      <span class="public-name">${escHtml(attraction.title)}</span>
+      <span class="public-address">${escHtml(attraction.address || TEXT.publicNoAddress)}</span>
+    </div>
+  </div>`;
+}
+
+function bindPublicCardEvents(container) {
+  container.querySelectorAll(".public-item").forEach((item) => {
+    item.addEventListener("click", () => selectPublicAttraction(item.dataset.contentId, { pan: true, scroll: false }));
+  });
+}
+
+function detachPublicListObserver() {
+  if (publicListObserver) {
+    publicListObserver.disconnect();
+    publicListObserver = null;
+  }
+}
+
+function attachPublicListObserver(container) {
+  if (publicListRenderedCount >= publicAttractions.length) return;
+  const sentinel = document.createElement("div");
+  sentinel.className = "public-list-sentinel";
+  container.appendChild(sentinel);
+  publicListObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) appendMorePublicCards();
+  }, { threshold: 0.1 });
+  publicListObserver.observe(sentinel);
+}
+
+function appendMorePublicCards() {
+  detachPublicListObserver();
+  const container = document.getElementById("public-list");
+  if (!container) return;
+  const sentinel = container.querySelector(".public-list-sentinel");
+  if (sentinel) sentinel.remove();
+
+  const slice = publicAttractions.slice(publicListRenderedCount, publicListRenderedCount + PUBLIC_CARD_BATCH);
+  const frag = document.createDocumentFragment();
+  const tmp = document.createElement("div");
+  tmp.innerHTML = slice.map(buildPublicCardHtml).join("");
+  while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+  container.appendChild(frag);
+  bindPublicCardEvents(container);
+  publicListRenderedCount += slice.length;
+  attachPublicListObserver(container);
+}
+
 function renderPublicAttractions() {
   const container = document.getElementById("public-list");
-  if (!container) {
-    return;
-  }
+  if (!container) return;
 
+  detachPublicListObserver();
   container.classList.remove("is-loading");
 
   if (!TOUR_API_ENABLED) {
@@ -715,25 +786,14 @@ function renderPublicAttractions() {
     selectedPublicAttractionId = publicAttractions[0].contentId;
   }
 
-  container.innerHTML = publicAttractions
-    .map((attraction) => `
-      <div class="public-item ${String(attraction.contentId) === String(selectedPublicAttractionId) ? "is-active" : ""}" data-content-id="${escHtml(attraction.contentId)}">
-        ${attraction.imageUrl
-          ? `<img class="public-thumb" src="${escHtml(attraction.imageUrl)}" alt="${escHtml(attraction.title)}">`
-          : '<div class="public-thumb public-thumb--empty">TRIP</div>'}
-        <div class="public-body">
-          <span class="public-name">${escHtml(attraction.title)}</span>
-          <span class="public-address">${escHtml(attraction.address || TEXT.publicNoAddress)}</span>
-        </div>
-      </div>
-    `)
-    .join("");
+  // Render first batch only — rest loads as user scrolls
+  publicListRenderedCount = Math.min(PUBLIC_CARD_BATCH, publicAttractions.length);
+  container.innerHTML = publicAttractions.slice(0, publicListRenderedCount).map(buildPublicCardHtml).join("");
+  bindPublicCardEvents(container);
 
   renderPublicPreview(publicAttractions.find((item) => String(item.contentId) === String(selectedPublicAttractionId)) || null);
 
-  container.querySelectorAll(".public-item").forEach((item) => {
-    item.addEventListener("click", () => selectPublicAttraction(item.dataset.contentId, { pan: true, scroll: false }));
-  });
+  attachPublicListObserver(container);
 }
 
 function renderPublicPreview(attraction) {
@@ -1127,6 +1187,8 @@ function loadAttractionsByLocation(latLng) {
 async function loadAttractionsByRegion(regionName) {
   if (!TOUR_API_ENABLED) { showToast(TEXT.publicApiMissing); return; }
 
+  const myVersion = ++regionLoadVersion;
+
   const normalizedRegionName = normalizeRegionName(regionName);
   const province = normalizedRegionName.includes(" ")
     ? normalizedRegionName.split(" ")[0]
@@ -1135,7 +1197,8 @@ async function loadAttractionsByRegion(regionName) {
   // Client-side cache: instant on re-click same region
   const hit = regionFetchCache.get(province);
   if (hit && Date.now() < hit.expiry) {
-    applyAttractionResult(hit.data, normalizedRegionName, true);
+    if (myVersion !== regionLoadVersion) return; // superseded while reading cache
+    await applyAttractionResult(hit.data, normalizedRegionName, myVersion, true);
     return;
   }
 
@@ -1146,33 +1209,42 @@ async function loadAttractionsByRegion(regionName) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || TEXT.publicFailed);
 
+    if (myVersion !== regionLoadVersion) return; // newer click arrived while fetching
+
     regionFetchCache.set(province, { data, expiry: Date.now() + REGION_CACHE_TTL_MS });
-    applyAttractionResult(data, normalizedRegionName, false);
+    await applyAttractionResult(data, normalizedRegionName, myVersion, false);
   } catch (e) {
+    if (myVersion !== regionLoadVersion) return;
     console.error("loadAttractionsByRegion error:", e);
     showToast(e.message || TEXT.publicFailed);
     const statusEl = document.getElementById("public-status");
     if (statusEl) statusEl.textContent = TEXT.publicFailed;
   } finally {
-    clearPublicLoadingState();
+    if (myVersion === regionLoadVersion) clearPublicLoadingState();
   }
 }
 
-async function applyAttractionResult(data, normalizedRegionName, fromCache) {
-  const filtered = filterAttractionsByRegion(data, normalizedRegionName);
+async function applyAttractionResult(data, normalizedRegionName, version, fromCache) {
+  if (version !== regionLoadVersion) return;
+
+  // 시/군/구 레벨(이름에 공백 포함)만 클라이언트 주소 필터 적용.
+  // 도(province) 레벨은 서버가 area_code로 이미 정확히 필터링하므로 그대로 사용.
+  const filtered = normalizedRegionName.includes(" ")
+    ? filterAttractionsByRegion(data, normalizedRegionName)
+    : (Array.isArray(data) ? data : []);
   publicAttractions.splice(0, publicAttractions.length, ...filtered);
   clearPublicMarkers();
   selectedPublicAttractionId = filtered[0]?.contentId ?? null;
 
-  // Render cards immediately so panel feels instant
   renderPublicAttractions();
 
   const statusEl = document.getElementById("public-status");
   if (statusEl) statusEl.textContent = `${normalizedRegionName} 여행지 ${filtered.length}개를 표시했습니다.`;
   showToast(`${normalizedRegionName} 여행지 ${filtered.length}개 표시`, "success");
 
-  // Add map markers in batches so the main thread stays responsive
-  await renderPublicMarkersInBatches(filtered);
+  if (fromCache) clearPublicLoadingState();
+
+  await renderPublicMarkersInBatches(filtered, version);
 }
 
 const CLEAN_REGION_ADDRESS_PREFIX_MAP = {
@@ -1380,14 +1452,15 @@ function clearPublicLoadingState() {
 }
 
 function clearPublicMarkers() {
-  publicMarkerMap.forEach((entry) => {
-    entry.infowindow.close();
-    if (publicClusterer) {
-      publicClusterer.removeMarker(entry.marker);
-    } else {
-      entry.marker.setMap(null);
+  publicMarkerMap.forEach((entry) => entry.infowindow.close());
+  if (publicClusterer) {
+    const markers = [...publicMarkerMap.values()].map((e) => e.marker);
+    if (markers.length > 0) {
+      markers.forEach((m, i) => publicClusterer.removeMarker(m, i < markers.length - 1));
     }
-  });
+  } else {
+    publicMarkerMap.forEach((entry) => entry.marker.setMap(null));
+  }
   publicMarkerMap.clear();
 }
 
@@ -1401,12 +1474,14 @@ function nextFrame() {
   });
 }
 
-async function renderPublicMarkersInBatches(attractions, batchSize = 40) {
-  for (let index = 0; index < attractions.length; index += batchSize) {
-    const batch = attractions.slice(index, index + batchSize);
-    batch.forEach(addPublicMarker);
+async function renderPublicMarkersInBatches(attractions, version, batchSize = 50) {
+  for (let i = 0; i < attractions.length; i += batchSize) {
+    if (version !== regionLoadVersion) return;
+    attractions.slice(i, i + batchSize).forEach((a) => addPublicMarker(a, true));
     await nextFrame();
   }
+  if (version !== regionLoadVersion) return;
+  if (publicClusterer) publicClusterer.redraw();
 }
 
 function handleImageChange() {
@@ -1748,172 +1823,5 @@ function setHtml(id, value) {
   const element = document.getElementById(id);
   if (element) {
     element.innerHTML = value;
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const loadButton = document.getElementById("btn-load-public");
-  if (loadButton && !loadButton.dataset.boundReload) {
-    loadButton.dataset.boundReload = "true";
-    loadButton.addEventListener("click", loadPublicAttractions);
-  }
-});
-
-async function loadPublicAttractions() {
-  const statusElement = document.getElementById("public-status");
-  const loadButton = document.getElementById("btn-load-public");
-  const syncButton = document.getElementById("btn-sync-public");
-
-  if (!statusElement) {
-    return;
-  }
-
-  if (!TOUR_API_ENABLED) {
-    statusElement.textContent = TEXT.publicApiMissing;
-    renderPublicAttractions();
-    return;
-  }
-
-  if (loadButton) {
-    loadButton.disabled = true;
-  }
-  if (syncButton) {
-    syncButton.disabled = true;
-  }
-  setPublicLoadingState("전국 공공 여행지를 다시 불러오고 있어요. 잠시만 기다려주세요.");
-
-  try {
-    const response = await fetch("/api/tourism/attractions");
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || TEXT.publicFailed);
-    }
-
-    allPublicAttractions.splice(0, allPublicAttractions.length, ...data);
-    publicAttractions.splice(0, publicAttractions.length, ...data);
-    selectedPublicAttractionId = data[0]?.contentId ?? null;
-
-    clearPublicMarkers();
-    renderPublicAttractions();
-    await renderPublicMarkersInBatches(data);
-
-    statusElement.textContent = `전국 공공 여행지 ${data.length}개를 불러왔습니다.`;
-    showToast(`전국 공공 여행지 ${data.length}개를 불러왔어요.`, "success");
-  } catch (error) {
-    console.error("loadPublicAttractions error:", error);
-    statusElement.textContent = error.message || TEXT.publicFailed;
-    showToast(error.message || TEXT.publicFailed);
-  } finally {
-    clearPublicLoadingState();
-    if (loadButton) {
-      loadButton.disabled = false;
-    }
-    if (syncButton) {
-      syncButton.disabled = false;
-    }
-  }
-}
-
-async function syncPublicAttractions() {
-  const statusElement = document.getElementById("public-status");
-  const syncButton = document.getElementById("btn-sync-public");
-  const loadButton = document.getElementById("btn-load-public");
-
-  if (!syncButton || !statusElement) {
-    return;
-  }
-
-  if (!TOUR_API_ENABLED) {
-    statusElement.textContent = TEXT.publicApiMissing;
-    return;
-  }
-
-  syncButton.disabled = true;
-  if (loadButton) {
-    loadButton.disabled = true;
-  }
-  syncButton.textContent = TEXT.publicSyncing;
-  setPublicLoadingState("전국 공공 여행지를 새로 모으고 있어요. 잠시만 기다려주세요.");
-
-  try {
-    const response = await fetch("/api/tourism/attractions/sync", {
-      method: "POST",
-      headers: {
-        [CSRF_HEADER]: getCsrfToken(),
-      },
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || TEXT.publicFailed);
-    }
-
-    statusElement.textContent = `${TEXT.publicSyncDone} 현재 ${data.activeCount ?? data.syncedCount ?? 0}개가 준비되었습니다.`;
-    showToast(`${TEXT.publicSyncDone} (${data.syncedCount ?? 0}개)`, "success");
-    await loadPublicAttractions();
-  } catch (error) {
-    console.error("syncPublicAttractions error:", error);
-    statusElement.textContent = error.message || TEXT.publicFailed;
-    showToast(error.message || TEXT.publicFailed);
-  } finally {
-    clearPublicLoadingState();
-    syncButton.disabled = false;
-    if (loadButton) {
-      loadButton.disabled = false;
-    }
-    syncButton.textContent = TEXT.publicSyncButton;
-  }
-}
-
-async function loadAttractionsByRegion(regionName) {
-  if (!TOUR_API_ENABLED) {
-    showToast(TEXT.publicApiMissing);
-    return;
-  }
-
-  const normalizedRegionName = normalizeRegionName(regionName);
-  const loadButton = document.getElementById("btn-load-public");
-  const syncButton = document.getElementById("btn-sync-public");
-  if (loadButton) {
-    loadButton.disabled = true;
-  }
-  if (syncButton) {
-    syncButton.disabled = true;
-  }
-  setPublicLoadingState("이 지역에 여행갈 곳을 찾고 있어요. 잠시만 기다려주세요.");
-
-  try {
-    const response = await fetch("/api/tourism/attractions/region?region=" + encodeURIComponent(normalizedRegionName));
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || TEXT.publicFailed);
-    }
-
-    publicAttractions.splice(0, publicAttractions.length, ...data);
-    selectedPublicAttractionId = data[0]?.contentId ?? null;
-
-    clearPublicMarkers();
-    renderPublicAttractions();
-    await renderPublicMarkersInBatches(data);
-
-    const statusElement = document.getElementById("public-status");
-    if (statusElement) {
-      statusElement.textContent = `${normalizedRegionName} 여행지 ${data.length}개를 표시하고 있어요.`;
-    }
-    showToast(`${normalizedRegionName} 여행지 ${data.length}개를 불러왔어요.`, "success");
-  } catch (error) {
-    console.error("loadAttractionsByRegion error:", error);
-    const statusElement = document.getElementById("public-status");
-    if (statusElement) {
-      statusElement.textContent = error.message || TEXT.publicFailed;
-    }
-    showToast(error.message || TEXT.publicFailed);
-  } finally {
-    clearPublicLoadingState();
-    if (loadButton) {
-      loadButton.disabled = false;
-    }
-    if (syncButton) {
-      syncButton.disabled = false;
-    }
   }
 }
