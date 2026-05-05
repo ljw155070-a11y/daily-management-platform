@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.file.Path;
@@ -143,6 +144,22 @@ public class TravelPlaceController {
             ));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(503).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/api/tourism/attractions/{contentId}/coordinates")
+    @ResponseBody
+    public ResponseEntity<?> updateAttractionCoordinates(@PathVariable String contentId,
+                                                         @RequestBody Map<String, Object> body) {
+        try {
+            Double latitude = body.get("latitude") instanceof Number number ? number.doubleValue() : null;
+            Double longitude = body.get("longitude") instanceof Number number ? number.doubleValue() : null;
+            String reason = body.get("reason") instanceof String text ? text : null;
+            return ResponseEntity.ok(publicTravelAttractionService.updateCoordinates(contentId, latitude, longitude, reason));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
