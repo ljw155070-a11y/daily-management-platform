@@ -33,7 +33,6 @@
 .finance-hero-card {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
     gap: 12px;
     padding: 20px 24px 18px;
     border-radius: 16px;
@@ -249,7 +248,6 @@
 .card-head {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
 }
@@ -305,7 +303,6 @@
 .category-chart-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     margin-bottom: 8px;
 }
@@ -401,7 +398,6 @@
 .budget-item-top {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 12px;
     margin-bottom: 8px;
 }
@@ -446,7 +442,6 @@
 .budget-meta-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     margin-top: 8px;
     font-size: 0.75rem;
@@ -474,7 +469,6 @@
 .panel-card-head {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 12px;
     margin-bottom: 14px;
 }
@@ -671,7 +665,6 @@ textarea.form-input {
 .transaction-item {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 10px;
     padding: 12px;
     border-radius: 12px;
@@ -712,7 +705,6 @@ textarea.form-input {
 .transaction-top-row {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 10px;
     margin-bottom: 3px;
 }
@@ -762,11 +754,17 @@ textarea.form-input {
     color: #8b919a;
 }
 
-.transaction-actions {
+.transaction-actions-row {
     display: flex;
-    flex-direction: column;
     gap: 4px;
-    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+.transaction-actions-row .action-btn {
+    flex: 1;
+    text-align: center;
+    padding: 5px 0;
+    font-size: 0.72rem;
 }
 
 .action-btn {
@@ -845,8 +843,7 @@ textarea.form-input {
 
     .month-nav,
     .finance-month-nav {
-        justify-content: space-between;
-        flex-wrap: wrap;
+            flex-wrap: wrap;
         border-radius: 12px;
     }
 
@@ -875,9 +872,8 @@ textarea.form-input {
         flex-direction: column;
     }
 
-    .transaction-actions {
+    .transaction-actions-row {
         width: 100%;
-        flex-direction: row;
     }
 
     .action-btn {

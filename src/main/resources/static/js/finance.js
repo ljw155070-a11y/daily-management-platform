@@ -329,32 +329,28 @@ function renderHistory() {
     const categoryName = tx.categoryName || TEXT.formCategory;
     const note = tx.description || "";
     const amountClass = tx.txType === "INCOME" ? "income" : "expense";
-    const fixedBadge = tx.txType === "EXPENSE" && tx.isFixed === "Y"
-      ? `<span class="badge-fixed">${escHtml(TEXT.fixedExpense)}</span>`
-      : "";
+    const isFixed = tx.txType === "EXPENSE" && tx.isFixed === "Y";
     return `
       <article class="transaction-item" data-id="${tx.id}">
         <div class="transaction-main">
           <div class="transaction-icon">${escHtml(icon)}</div>
           <div class="transaction-body">
             <div class="transaction-top-row">
-              <div class="transaction-title-row">
-                <strong class="transaction-category">${escHtml(categoryName)}</strong>
-                ${fixedBadge}
-              </div>
+              <strong class="transaction-category">${escHtml(categoryName)}</strong>
               <span class="transaction-amount ${amountClass}">${formatTxAmount(tx.amount, tx.txType)}</span>
             </div>
             <div class="transaction-meta">
               <span>${escHtml(tx.txDate || "")}</span>
               <span>${escHtml(formatPaymentMethod(tx.paymentMethod))}</span>
               ${note ? `<span>${escHtml(note)}</span>` : ""}
+              ${isFixed ? `<span class="badge-fixed">${escHtml(TEXT.fixedExpense)}</span>` : ""}
+            </div>
+            <div class="transaction-actions-row">
+              <button type="button" class="action-btn copy" data-action="copy" data-id="${tx.id}">${escHtml(TEXT.copyLabel)}</button>
+              <button type="button" class="action-btn edit" data-action="edit" data-id="${tx.id}">${escHtml(TEXT.editLabel)}</button>
+              <button type="button" class="action-btn delete" data-action="delete" data-id="${tx.id}">${escHtml(TEXT.deleteLabel)}</button>
             </div>
           </div>
-        </div>
-        <div class="transaction-actions">
-          <button type="button" class="action-btn copy" data-action="copy" data-id="${tx.id}">${escHtml(TEXT.copyLabel)}</button>
-          <button type="button" class="action-btn edit" data-action="edit" data-id="${tx.id}">${escHtml(TEXT.editLabel)}</button>
-          <button type="button" class="action-btn delete" data-action="delete" data-id="${tx.id}">${escHtml(TEXT.deleteLabel)}</button>
         </div>
       </article>`;
   }).join("");
