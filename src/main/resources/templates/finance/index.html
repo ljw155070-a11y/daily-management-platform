@@ -19,6 +19,7 @@
                 </h1>
                 <p class="finance-page-desc" th:text="#{page.finance.desc}">Track income and expenses, manage budgets, and view monthly analysis.</p>
             </div>
+            <button type="button" id="category-settings-btn" class="hero-icon-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}">⚙</button>
         </div>
 
         <div class="finance-month-nav month-nav">
@@ -52,6 +53,7 @@
                 <strong id="summary-balance" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.balance, 0, 'COMMA')}|">₩0</strong>
             </article>
         </div>
+        <div id="finance-insight" class="finance-insight"></div>
 
         <div class="dashboard-tab-bar" role="tablist" aria-label="dashboard tabs">
             <button type="button" class="dashboard-tab active" data-tab="chart">지출 분석</button>
@@ -117,6 +119,15 @@
                 </div>
                 <div id="budget-empty" class="empty-state" th:text="#{finance.budget.set}">Set budget</div>
             </article>
+            <div id="dashboard-calendar" class="dashboard-card dashboard-panel dashboard-tab-content" data-panel="calendar" style="display:none">
+                <div class="card-head">
+                    <div>
+                        <p class="card-kicker">CALENDAR</p>
+                        <h2 class="card-title" th:text="#{finance.tab.calendar}">달력</h2>
+                    </div>
+                </div>
+                <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
         </div>
     </section>
 
@@ -246,6 +257,32 @@
     </aside>
 </div>
 
+<div id="category-modal" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 th:text="#{finance.category.manage}">카테고리 관리</h3>
+            <button id="modal-close" class="modal-close-btn" th:aria-label="#{common.cancel}">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-section">
+                <h4 th:text="#{finance.type.expense}">지출</h4>
+                <div id="modal-expense-list" class="modal-category-list"></div>
+            </div>
+            <div class="modal-section">
+                <h4 th:text="#{finance.type.income}">수입</h4>
+                <div id="modal-income-list" class="modal-category-list"></div>
+            </div>
+            <div class="modal-add-row">
+                <select id="modal-add-type" class="form-input" style="width:auto">
+                    <option value="EXPENSE" th:text="#{finance.type.expense}">지출</option>
+                    <option value="INCOME" th:text="#{finance.type.income}">수입</option>
+                </select>
+                <input id="modal-add-name" class="form-input" th:placeholder="#{finance.form.category}" placeholder="카테고리명" maxlength="100">
+                <button id="modal-add-btn" class="btn-save" type="button" style="flex:0; padding:8px 16px;" th:text="#{finance.category.add}">추가</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script th:inline="javascript">
     /*<![CDATA[*/
     const CATEGORIES = /*[[${categories}]]*/ [];
@@ -303,10 +340,15 @@
         budgetRemaining: /*[[#{finance.budget.remaining}]]*/ 'Remaining',
         chartTitle: /*[[#{finance.chart.title}]]*/ 'Spending by category',
         comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
+        insightTopCategory: /*[[#{finance.insight.topCategory}]]*/ 'Top spending category this month:',
+        categoryManage: /*[[#{finance.category.manage}]]*/ 'Manage categories',
+        categoryAdd: /*[[#{finance.category.add}]]*/ 'Add',
+        categoryDeleteConfirm: /*[[#{finance.category.deleteConfirm}]]*/ 'Delete this category?',
         monthPrev: /*[[#{finance.month.prev}]]*/ 'Previous',
         monthNext: /*[[#{finance.month.next}]]*/ 'Next',
         unit: /*[[#{finance.unit}]]*/ 'KRW',
         deleteLabel: /*[[#{common.delete}]]*/ 'Delete',
+        copyLabel: /*[[#{finance.action.copy}]]*/ 'Copy',
         editLabel: /*[[#{common.edit}]]*/ 'Edit',
         cancelLabel: /*[[#{common.cancel}]]*/ 'Cancel'
     };

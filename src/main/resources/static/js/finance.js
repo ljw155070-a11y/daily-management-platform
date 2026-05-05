@@ -5,6 +5,7 @@ let summaryState = normalizeSummary(SUMMARY);
 const DEFAULT_TX_TYPE = document.querySelector(".finance-type-btn.active")?.dataset.value || document.querySelector(".finance-type-btn")?.dataset.value || "EXPENSE";
 
 const categoryList = Array.isArray(CATEGORIES) ? [...CATEGORIES] : [];
+sortCategoryList();
 const budgetList = Array.isArray(BUDGETS) ? [...BUDGETS] : [];
 
 const els = {
@@ -14,6 +15,7 @@ const els = {
   summaryFixedExpense: document.getElementById("summary-fixed-expense"),
   summaryVariableExpense: document.getElementById("summary-variable-expense"),
   summaryBalance: document.getElementById("summary-balance"),
+  insight: document.getElementById("finance-insight"),
   chartList: document.getElementById("category-chart-list"),
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
@@ -43,6 +45,14 @@ const els = {
   dashboardTabs: Array.from(document.querySelectorAll(".dashboard-tab")),
   dashboardPanels: Array.from(document.querySelectorAll(".dashboard-panel")),
   monthButtons: Array.from(document.querySelectorAll(".month-nav-btn")),
+  categorySettingsBtn: document.getElementById("category-settings-btn"),
+  categoryModal: document.getElementById("category-modal"),
+  modalClose: document.getElementById("modal-close"),
+  modalExpenseList: document.getElementById("modal-expense-list"),
+  modalIncomeList: document.getElementById("modal-income-list"),
+  modalAddType: document.getElementById("modal-add-type"),
+  modalAddName: document.getElementById("modal-add-name"),
+  modalAddBtn: document.getElementById("modal-add-btn"),
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -61,6 +71,7 @@ function renderAll() {
   renderCategoryChart();
   renderBudgetBars();
   renderCalendar();
+  renderInsight();
   renderHistory();
 }
 
@@ -139,64 +150,87 @@ function renderBudgetBars() {
 }
 
 function renderCalendar() {
-  if (!els.calendarGrid) return;
+  const calendarGrid = document.getElementById("calendar-grid");
+  if (!calendarGrid) return;
 
-  const year = Number(CURRENT_YEAR);
-  const month = Number(CURRENT_MONTH);
-  const firstDay = new Date(year, month - 1, 1);
+  const headers = ["일", "월", "화", "수", "목", "금", "토"];
+  const firstDay = new Date(CURRENT_YEAR, CURRENT_MONTH - 1, 1);
   const firstWeekday = firstDay.getDay();
-  const totalDays = new Date(year, month, 0).getDate();
+  const totalDays = new Date(CURRENT_YEAR, CURRENT_MONTH, 0).getDate();
   const today = new Date();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month - 1;
-  const expenseMap = new Map();
+  const isCurrentMonth = today.getFullYear() === CURRENT_YEAR && today.getMonth() === CURRENT_MONTH - 1;
+  const dailyMap = {};
 
-  txList.forEach((tx) => {
-    if (tx.txType !== "EXPENSE" || !tx.txDate) return;
-    const txDate = new Date(`${tx.txDate}T00:00:00`);
-    if (Number.isNaN(txDate.getTime())) return;
-    if (txDate.getFullYear() !== year || txDate.getMonth() !== month - 1) return;
-
-    const day = txDate.getDate();
-    expenseMap.set(day, (expenseMap.get(day) || 0) + toNumber(tx.amount));
+  txList.filter(t => t.txType === "EXPENSE" && t.txDate).forEach(t => {
+    const parts = String(t.txDate).split("-");
+    if (parts.length !== 3) return;
+    const txYear = Number(parts[0]);
+    const txMonth = Number(parts[1]);
+    const day = Number(parts[2]);
+    if (txYear !== CURRENT_YEAR || txMonth !== CURRENT_MONTH || !Number.isFinite(day)) return;
+    dailyMap[day] = (dailyMap[day] || 0) + Number(t.amount || 0);
   });
 
-  const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-  const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
-    const base = new Date(2026, 4, 3 + index);
-    return weekdayFormatter.format(base);
+  const html = [];
+  headers.forEach((label) => {
+    html.push(`<div class="calendar-header">${label}</div>`);
   });
 
-  const cells = [];
-  weekdayLabels.forEach((label) => {
-    cells.push(`<div class="calendar-header">${escHtml(label)}</div>`);
-  });
-
-  for (let index = 0; index < firstWeekday; index += 1) {
-    cells.push('<div class="calendar-cell empty"></div>');
+  for (let i = 0; i < firstWeekday; i += 1) {
+    html.push('<div class="calendar-cell empty"></div>');
   }
 
   for (let day = 1; day <= totalDays; day += 1) {
     const weekday = (firstWeekday + day - 1) % 7;
-    const amount = expenseMap.get(day) || 0;
-    const isToday = isCurrentMonth && today.getDate() === day;
-    const dayClasses = ['calendar-day'];
-    if (weekday === 0) dayClasses.push('sunday');
-    if (weekday === 6) dayClasses.push('saturday');
+    const amount = dailyMap[day] || 0;
+    const cellClasses = ["calendar-cell"];
+    const dayClasses = ["calendar-day"];
 
-    const cellClasses = ['calendar-cell'];
-    if (isToday) cellClasses.push('today');
+    if (isCurrentMonth && today.getDate() === day) {
+      cellClasses.push("today");
+    }
+    if (weekday === 0) dayClasses.push("sunday");
+    if (weekday === 6) dayClasses.push("saturday");
 
-    const amountText = amount > 0 ? formatAmount(amount) : '-';
-    const amountClass = amount > 0 ? 'calendar-amount' : 'calendar-amount zero';
+    const amountHtml = amount > 0
+      ? `<div class="calendar-amount">${escHtml(formatAmount(amount))}</div>`
+      : '<div class="calendar-no-spend"></div>';
 
-    cells.push(`
-      <div class="${cellClasses.join(' ')}">
-        <div class="${dayClasses.join(' ')}">${day}</div>
-        <div class="${amountClass}">${escHtml(amountText)}</div>
+    html.push(`
+      <div class="${cellClasses.join(" ")}">
+        <div class="${dayClasses.join(" ")}">${day}</div>
+        ${amountHtml}
       </div>`);
   }
 
-  els.calendarGrid.innerHTML = cells.join('');
+  calendarGrid.innerHTML = html.join("");
+}
+
+function renderInsight() {
+  if (!els.insight) return;
+
+  const items = Array.isArray(summaryState.expenseByCategory) ? summaryState.expenseByCategory : [];
+  if (items.length === 0) {
+    els.insight.style.display = "none";
+    els.insight.textContent = "";
+    return;
+  }
+
+  const topCategory = items.reduce((max, item) => {
+    if (!max) return item;
+    return toNumber(item.amount) > toNumber(max.amount) ? item : max;
+  }, null);
+
+  if (!topCategory || toNumber(topCategory.amount) <= 0) {
+    els.insight.style.display = "none";
+    els.insight.textContent = "";
+    return;
+  }
+
+  const icon = topCategory.icon ? `${topCategory.icon} ` : "";
+  const name = topCategory.categoryName || TEXT.formCategory;
+  els.insight.style.display = "block";
+  els.insight.textContent = `${TEXT.insightTopCategory} ${icon}${name} (${formatAmount(topCategory.amount)}) 입니다`;
 }
 function renderHistory() {
   if (!els.historyList) return;
@@ -230,6 +264,7 @@ function renderHistory() {
           </div>
         </div>
         <div class="transaction-actions">
+          <button type="button" class="action-btn copy" data-action="copy" data-id="${tx.id}">${escHtml(TEXT.copyLabel)}</button>
           <button type="button" class="action-btn edit" data-action="edit" data-id="${tx.id}">${escHtml(TEXT.editLabel)}</button>
           <button type="button" class="action-btn delete" data-action="delete" data-id="${tx.id}">${escHtml(TEXT.deleteLabel)}</button>
         </div>
@@ -260,7 +295,21 @@ function bindEvents() {
   els.searchInput?.addEventListener("input", () => renderHistory());
   els.filterCategory?.addEventListener("change", () => renderHistory());
   els.filterPayment?.addEventListener("change", () => renderHistory());
-
+  els.categorySettingsBtn?.addEventListener("click", openCategoryModal);
+  els.modalClose?.addEventListener("click", closeCategoryModal);
+  els.modalAddBtn?.addEventListener("click", addCategoryFromModal);
+  els.categoryModal?.addEventListener("click", (event) => {
+    if (event.target === els.categoryModal) {
+      closeCategoryModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.categoryModal?.style.display !== "none") {
+      closeCategoryModal();
+    }
+  });
+  els.modalExpenseList?.addEventListener("click", handleCategoryModalAction);
+  els.modalIncomeList?.addEventListener("click", handleCategoryModalAction);
 
   els.dashboardTabs.forEach((button) => {
     button.addEventListener("click", () => {
@@ -279,6 +328,7 @@ function bindEvents() {
     const id = Number(target.dataset.id);
     if (!Number.isFinite(id)) return;
 
+    if (target.dataset.action === "copy") copyTransaction(id);
     if (target.dataset.action === "edit") startEdit(id);
     if (target.dataset.action === "delete") deleteTransaction(id);
   });
@@ -426,6 +476,32 @@ function startEdit(id) {
   if (els.cancel) els.cancel.style.display = "";
 }
 
+function copyTransaction(id) {
+  const tx = txList.find((item) => item.id === id);
+  if (!tx) return;
+
+  editingId = null;
+  if (els.editId) els.editId.value = "";
+
+  currentTxType = tx.txType || "EXPENSE";
+  syncTypeButtons();
+  populateCategoryOptions(currentTxType, tx.categoryId);
+  syncFixedFieldVisibility();
+  syncCustomCategoryVisibility();
+  hideCustomCategoryGroup();
+
+  if (els.amount) els.amount.value = tx.amount ?? "";
+  setTodayDate();
+  if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
+  if (els.paymentMethod) els.paymentMethod.value = tx.paymentMethod || "CASH";
+  if (els.description) els.description.value = tx.description || "";
+  if (els.formTitle) els.formTitle.textContent = TEXT.formTitle;
+  if (els.save) {
+    els.save.textContent = TEXT.formSave;
+    els.save.disabled = false;
+  }
+  if (els.cancel) els.cancel.style.display = "none";
+}
 function resetForm() {
   editingId = null;
   if (els.editId) els.editId.value = "";
@@ -444,6 +520,197 @@ function resetForm() {
     els.save.disabled = false;
   }
   if (els.cancel) els.cancel.style.display = "none";
+}
+
+function openCategoryModal() {
+  renderCategoryModal();
+  if (els.categoryModal) {
+    els.categoryModal.style.display = "flex";
+  }
+}
+
+function closeCategoryModal() {
+  if (els.categoryModal) {
+    els.categoryModal.style.display = "none";
+  }
+  if (els.modalAddName) {
+    els.modalAddName.value = "";
+  }
+  populateCategoryOptions(currentTxType, els.category?.value || null);
+  populateFilterCategories();
+  syncCustomCategoryVisibility();
+  renderHistory();
+}
+
+function renderCategoryModal() {
+  renderCategoryModalList("EXPENSE", els.modalExpenseList);
+  renderCategoryModalList("INCOME", els.modalIncomeList);
+}
+
+function renderCategoryModalList(catType, container) {
+  if (!container) return;
+
+  const categories = getCategoriesByType(catType);
+  container.innerHTML = categories.map((category, index) => {
+    const disableDelete = category.isDefault === "Y" ? "disabled" : "";
+    const disableUp = index === 0 ? "disabled" : "";
+    const disableDown = index === categories.length - 1 ? "disabled" : "";
+    return `
+      <div class="modal-category-item" data-id="${category.id}">
+        <span class="cat-icon">${escHtml(category.icon || "•")}</span>
+        <span class="cat-name">${escHtml(category.catName)}</span>
+        <div class="cat-order-actions">
+          <button type="button" class="cat-move" data-action="move-up" data-type="${catType}" data-id="${category.id}" ${disableUp}>↑</button>
+          <button type="button" class="cat-move" data-action="move-down" data-type="${catType}" data-id="${category.id}" ${disableDown}>↓</button>
+        </div>
+        <button type="button" class="cat-delete" data-action="delete-category" data-type="${catType}" data-id="${category.id}" ${disableDelete}>✕</button>
+      </div>`;
+  }).join("");
+}
+
+async function handleCategoryModalAction(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const id = Number(button.dataset.id);
+  const catType = button.dataset.type || "EXPENSE";
+  if (!Number.isFinite(id)) return;
+
+  if (button.dataset.action === "move-up") {
+    await moveCategory(catType, id, -1);
+    return;
+  }
+  if (button.dataset.action === "move-down") {
+    await moveCategory(catType, id, 1);
+    return;
+  }
+  if (button.dataset.action === "delete-category") {
+    await deleteCategoryFromModal(id);
+  }
+}
+
+async function addCategoryFromModal() {
+  const catType = els.modalAddType?.value || "EXPENSE";
+  const catName = (els.modalAddName?.value || "").trim();
+  if (!catName) {
+    showToast(TEXT.formCategory);
+    return;
+  }
+
+  const params = new URLSearchParams({ catType, catName });
+  try {
+    const response = await fetch("/finance/categories", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        [CSRF_HEADER]: CSRF_TOKEN,
+      },
+      body: params.toString(),
+    });
+    if (!response.ok) throw new Error("category add failed");
+
+    const created = await response.json();
+    categoryList.push(created);
+    sortCategoryList();
+    renderCategoryModal();
+    populateCategoryOptions(currentTxType, els.category?.value || null);
+    populateFilterCategories();
+    if (els.modalAddName) {
+      els.modalAddName.value = "";
+      els.modalAddName.focus();
+    }
+  } catch (error) {
+    console.error("addCategoryFromModal error:", error);
+    showToast(TEXT.toastSaveFailed);
+  }
+}
+
+async function deleteCategoryFromModal(id) {
+  if (!confirm(TEXT.categoryDeleteConfirm)) return;
+
+  try {
+    const response = await fetch(`/finance/categories/${id}`, {
+      method: "DELETE",
+      headers: { [CSRF_HEADER]: CSRF_TOKEN },
+    });
+    if (!response.ok) throw new Error("category delete failed");
+
+    const index = categoryList.findIndex((category) => category.id === id);
+    if (index !== -1) {
+      categoryList.splice(index, 1);
+    }
+    sortCategoryList();
+    renderCategoryModal();
+    populateCategoryOptions(currentTxType, els.category?.value || null);
+    populateFilterCategories();
+    syncCustomCategoryVisibility();
+  } catch (error) {
+    console.error("deleteCategoryFromModal error:", error);
+    showToast(TEXT.toastDeleteFailed);
+  }
+}
+
+async function moveCategory(catType, id, direction) {
+  const categories = getCategoriesByType(catType);
+  const index = categories.findIndex((category) => category.id === id);
+  const nextIndex = index + direction;
+  if (index === -1 || nextIndex < 0 || nextIndex >= categories.length) {
+    return;
+  }
+
+  const moved = categories[index];
+  categories[index] = categories[nextIndex];
+  categories[nextIndex] = moved;
+  categories.forEach((category, order) => {
+    const target = categoryList.find((item) => item.id === category.id);
+    if (target) {
+      target.sortOrder = order + 1;
+    }
+  });
+  sortCategoryList();
+  renderCategoryModal();
+
+  try {
+    await persistCategoryOrder(catType);
+    populateCategoryOptions(currentTxType, els.category?.value || null);
+    populateFilterCategories();
+  } catch (error) {
+    console.error("moveCategory error:", error);
+    showToast(TEXT.toastUpdateFailed);
+  }
+}
+
+async function persistCategoryOrder(catType) {
+  const response = await fetch("/finance/categories/order", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      [CSRF_HEADER]: CSRF_TOKEN,
+    },
+    body: JSON.stringify({
+      catType,
+      categoryIds: getCategoriesByType(catType).map((category) => category.id),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("category order failed");
+  }
+}
+
+function getCategoriesByType(catType) {
+  return [...categoryList]
+    .filter((category) => category.catType === catType)
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+}
+
+function sortCategoryList() {
+  categoryList.sort((a, b) => {
+    if ((a.catType || "") !== (b.catType || "")) {
+      return String(a.catType || "").localeCompare(String(b.catType || ""));
+    }
+    return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+  });
 }
 
 function populateFilterCategories() {
@@ -480,7 +747,7 @@ function getFilteredTransactions() {
 function populateCategoryOptions(txType, selectedId) {
   if (!els.category) return;
 
-  const categories = categoryList.filter((category) => category.catType === txType);
+  const categories = getCategoriesByType(txType);
   els.category.innerHTML = `
     <option value="" disabled ${selectedId == null ? "selected" : ""}>${escHtml(TEXT.formCategory)}</option>
     ${categories.map((category) => `<option value="${category.id}" ${String(category.id) === String(selectedId) ? "selected" : ""}>${escHtml(category.catName)}</option>`).join("")}`;
