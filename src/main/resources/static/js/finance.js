@@ -2,6 +2,7 @@ const txList = Array.isArray(TRANSACTIONS) ? [...TRANSACTIONS] : [];
 let editingId = null;
 let currentTxType = "EXPENSE";
 let summaryState = normalizeSummary(SUMMARY);
+let selectedCalendarDay = null;
 const DEFAULT_TX_TYPE = document.querySelector(".finance-type-btn.active")?.dataset.value || document.querySelector(".finance-type-btn")?.dataset.value || "EXPENSE";
 
 const categoryList = Array.isArray(CATEGORIES) ? [...CATEGORIES] : [];
@@ -21,6 +22,7 @@ const els = {
   budgetList: document.getElementById("budget-list"),
   budgetEmpty: document.getElementById("budget-empty"),
   calendarGrid: document.getElementById("calendar-grid"),
+  calendarDayDetail: document.getElementById("calendar-day-detail"),
   historyList: document.getElementById("transaction-history-list"),
   historyEmpty: document.getElementById("transaction-history-empty"),
   historyCount: document.querySelector(".history-count"),
@@ -71,6 +73,7 @@ function renderAll() {
   renderCategoryChart();
   renderBudgetBars();
   renderCalendar();
+  renderCalendarDayDetail();
   renderInsight();
   renderHistory();
 }
@@ -150,7 +153,7 @@ function renderBudgetBars() {
 }
 
 function renderCalendar() {
-  const calendarGrid = document.getElementById("calendar-grid");
+  const calendarGrid = els.calendarGrid;
   if (!calendarGrid) return;
 
   const headers = ["일", "월", "화", "수", "목", "금", "토"];
@@ -159,16 +162,23 @@ function renderCalendar() {
   const totalDays = new Date(CURRENT_YEAR, CURRENT_MONTH, 0).getDate();
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === CURRENT_YEAR && today.getMonth() === CURRENT_MONTH - 1;
-  const dailyMap = {};
+  const dailyIncome = {};
+  const dailyExpense = {};
 
-  txList.filter(t => t.txType === "EXPENSE" && t.txDate).forEach(t => {
+  txList.forEach((t) => {
+    if (!t.txDate) return;
     const parts = String(t.txDate).split("-");
     if (parts.length !== 3) return;
     const txYear = Number(parts[0]);
     const txMonth = Number(parts[1]);
     const day = Number(parts[2]);
+    const amt = Number(t.amount || 0);
     if (txYear !== CURRENT_YEAR || txMonth !== CURRENT_MONTH || !Number.isFinite(day)) return;
-    dailyMap[day] = (dailyMap[day] || 0) + Number(t.amount || 0);
+    if (t.txType === "INCOME") {
+      dailyIncome[day] = (dailyIncome[day] || 0) + amt;
+    } else {
+      dailyExpense[day] = (dailyExpense[day] || 0) + amt;
+    }
   });
 
   const html = [];
@@ -182,28 +192,102 @@ function renderCalendar() {
 
   for (let day = 1; day <= totalDays; day += 1) {
     const weekday = (firstWeekday + day - 1) % 7;
-    const amount = dailyMap[day] || 0;
+    const incomeAmt = dailyIncome[day] || 0;
+    const expenseAmt = dailyExpense[day] || 0;
     const cellClasses = ["calendar-cell"];
     const dayClasses = ["calendar-day"];
 
     if (isCurrentMonth && today.getDate() === day) {
       cellClasses.push("today");
     }
+    if (selectedCalendarDay === day) {
+      cellClasses.push("selected");
+    }
     if (weekday === 0) dayClasses.push("sunday");
     if (weekday === 6) dayClasses.push("saturday");
 
-    const amountHtml = amount > 0
-      ? `<div class="calendar-amount">${escHtml(formatAmount(amount))}</div>`
-      : '<div class="calendar-no-spend"></div>';
-
     html.push(`
-      <div class="${cellClasses.join(" ")}">
+      <div class="${cellClasses.join(" ")}" data-day="${day}">
         <div class="${dayClasses.join(" ")}">${day}</div>
-        ${amountHtml}
+        ${incomeAmt > 0 ? `<div class="calendar-income">+${escHtml(formatCompact(incomeAmt))}</div>` : ""}
+        ${expenseAmt > 0 ? `<div class="calendar-expense">-${escHtml(formatCompact(expenseAmt))}</div>` : ""}
       </div>`);
   }
 
   calendarGrid.innerHTML = html.join("");
+}
+
+function handleCalendarClick(event) {
+  const cell = event.target.closest(".calendar-cell");
+  if (!cell || cell.classList.contains("empty")) return;
+
+  const day = Number(cell.dataset.day);
+  if (!Number.isFinite(day)) return;
+
+  if (selectedCalendarDay === day) {
+    selectedCalendarDay = null;
+    renderCalendar();
+    renderCalendarDayDetail();
+    return;
+  }
+
+  selectedCalendarDay = day;
+  showDayDetail(day);
+}
+
+function showDayDetail(day) {
+  selectedCalendarDay = day;
+  renderCalendar();
+  renderCalendarDayDetail();
+}
+
+function renderCalendarDayDetail() {
+  if (!els.calendarDayDetail) return;
+  if (selectedCalendarDay == null) {
+    els.calendarDayDetail.style.display = "none";
+    els.calendarDayDetail.innerHTML = "";
+    return;
+  }
+
+  const items = txList
+    .filter((tx) => matchesCurrentMonthDay(tx, selectedCalendarDay))
+    .sort((a, b) => compareTransactions(b, a));
+
+  const title = formatCalendarDayDetailTitle(CURRENT_MONTH, selectedCalendarDay);
+  const body = items.length > 0
+    ? items.map((tx) => `
+        <div class="day-detail-item">
+          <div class="transaction-title-row">
+            <span class="cat-icon">${escHtml(tx.categoryIcon || "•")}</span>
+            <span>${escHtml(tx.categoryName || TEXT.formCategory)}</span>
+          </div>
+          <strong class="transaction-amount ${tx.txType === "INCOME" ? "income" : "expense"}">${formatTxAmount(tx.amount, tx.txType)}</strong>
+        </div>`).join("")
+    : `<div class="day-detail-item">${escHtml(TEXT.calendarNoTransaction)}</div>`;
+
+  els.calendarDayDetail.innerHTML = `<h4>${escHtml(title)}</h4>${body}`;
+  els.calendarDayDetail.style.display = "block";
+}
+
+function matchesCurrentMonthDay(tx, day) {
+  if (!tx?.txDate) return false;
+  const parts = String(tx.txDate).split("-");
+  if (parts.length !== 3) return false;
+  return Number(parts[0]) === CURRENT_YEAR
+    && Number(parts[1]) === CURRENT_MONTH
+    && Number(parts[2]) === day;
+}
+
+function formatCalendarDayDetailTitle(month, day) {
+  if (String(TEXT.pageTitle || "").includes("가계")) {
+    return `${month}월 ${day}일 거래내역`;
+  }
+
+  return String(TEXT.calendarDayDetail || "Transactions on {0}/{1}")
+    .replace("{0}", String(month))
+    .replace("{1}", String(day))
+    .replace("{month}", String(month))
+    .replace("{day}", String(day));
 }
 
 function renderInsight() {
@@ -310,6 +394,7 @@ function bindEvents() {
   });
   els.modalExpenseList?.addEventListener("click", handleCategoryModalAction);
   els.modalIncomeList?.addEventListener("click", handleCategoryModalAction);
+  els.calendarGrid?.addEventListener("click", handleCalendarClick);
 
   els.dashboardTabs.forEach((button) => {
     button.addEventListener("click", () => {
@@ -899,6 +984,13 @@ function setDefaultDate() {
 
 function formatAmount(amount) {
   return `₩${toNumber(amount).toLocaleString("ko-KR")}`;
+}
+
+function formatCompact(n) {
+  const value = toNumber(n);
+  if (value >= 10000) return `${Math.floor(value / 10000)}만`;
+  if (value >= 1000) return `${Math.floor(value / 1000)}천`;
+  return value.toLocaleString("ko-KR");
 }
 
 function formatSignedAmount(amount) {
