@@ -201,11 +201,15 @@ function renderCalendar() {
       <div class="${cellClasses.join(" ")}" data-day="${day}">
         <div class="${dayClasses.join(" ")}">${day}</div>
         <div class="calendar-events">
-          ${dayTransactions.slice(0, 3).map((tx) => `
-            <div class="cal-event ${tx.txType === "INCOME" ? "cal-income" : "cal-expense"}">
-              ${escHtml(tx.categoryName || TEXT.formCategory)} ${tx.txType === "INCOME" ? "+" : "-"}${escHtml(formatCompact(tx.amount))}
-            </div>`).join("")}
-          ${dayTransactions.length > 3 ? `<div class="cal-more">+${dayTransactions.length - 3}건</div>` : ""}
+          ${dayTransactions.slice(0, 3).map((tx) => {
+            const typeLabel = tx.txType === "INCOME" ? "수입" : "지출";
+            const memo = tx.description || tx.categoryName || TEXT.formCategory;
+            const colorClass = tx.txType === "INCOME" ? "cal-income" : "cal-expense";
+            return `
+            <div class="cal-event ${colorClass}">
+              <span class="cal-type">(${typeLabel})</span>${escHtml(memo)}
+            </div>`;
+          }).join("")}
         </div>
         ${dayTotal !== 0 ? `<div class="calendar-total ${dayTotal > 0 ? "positive" : "negative"}">${escHtml(formatCompact(Math.abs(dayTotal)))}</div>` : ""}
       </div>`);

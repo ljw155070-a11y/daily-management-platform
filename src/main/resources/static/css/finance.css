@@ -923,9 +923,11 @@ textarea.form-input {
 }
 
 .calendar-cell:hover:not(.empty) { background: #eef0f3; }
-.calendar-cell.selected { background: #e8eeff; outline: 1.5px solid #3b6fd4; }
+.calendar-cell.selected { background: #eef2ff; outline: 1.5px solid #3b6fd4; }
 .calendar-cell.empty { background: transparent; cursor: default; }
-.calendar-cell.today { background: #f0f5fc; outline: 1.5px solid #3b6fd4; }
+.calendar-cell.today { background: #fff7ed; outline: 2px solid #f97316; }
+.calendar-cell.today .calendar-day { color: #fff; background: #f97316; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-weight: 600; }
+.calendar-cell.today.selected { outline: 2px solid #f97316; background: #fff7ed; }
 
 .calendar-day { font-size: 0.75rem; font-weight: 500; color: #1b1d21; margin-bottom: 3px; }
 .calendar-day.sunday { color: #d94848; }
@@ -933,14 +935,20 @@ textarea.form-input {
 .calendar-events { display:flex; flex-direction:column; gap:1px; flex:1; overflow:hidden; }
 .cal-event {
     font-size: 0.58rem;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 1px 2px;
+    border-radius: 0;
+    background: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
 }
-.cal-income { background: rgba(45,157,94,0.1); color: #2d9d5e; }
-.cal-expense { background: rgba(217,72,72,0.1); color: #d94848; }
+.cal-type {
+    font-size: 0.5rem;
+    font-weight: 400;
+}
+.cal-income { color: #2d9d5e; background: none; }
+.cal-expense { color: #d94848; background: none; }
 .cal-more { font-size: 0.55rem; color: #8b919a; padding: 1px 4px; }
 .calendar-total {
     font-size: 0.6rem;
