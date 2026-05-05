@@ -999,7 +999,24 @@ textarea.form-input {
 .modal-category-item .cat-delete { background:none; border:none; color:#bec3cb; cursor:pointer; font-size:0.9rem; }
 .modal-category-item .cat-delete:hover { color:#d94848; }
 .modal-category-item .cat-delete:disabled { cursor:not-allowed; opacity:0.3; }
-.modal-add-row { display:flex; gap:6px; margin-top:12px; }
+.modal-add-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.modal-add-row .form-input { flex: 1; }
+#modal-add-type { width: 100px; flex: 0 0 100px; }
+#modal-add-name { flex: 1; }
+.modal-add-row #modal-add-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 18px;
+    min-width: auto;
+    width: auto;
+}
 .cat-order-actions { display:flex; gap:4px; }
 .cat-move { min-width:28px; height:28px; border:1px solid #e2e5e9; border-radius:6px; background:#fff; color:#5f6570; cursor:pointer; }
 .cat-move:hover { border-color:#b8d0f0; color:#3b6fd4; background:#f0f5fc; }

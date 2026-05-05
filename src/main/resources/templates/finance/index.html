@@ -273,12 +273,12 @@
                 <div id="modal-income-list" class="modal-category-list"></div>
             </div>
             <div class="modal-add-row">
-                <select id="modal-add-type" class="form-input" style="width:auto">
+                <select id="modal-add-type" class="form-input">
                     <option value="EXPENSE" th:text="#{finance.type.expense}">지출</option>
                     <option value="INCOME" th:text="#{finance.type.income}">수입</option>
                 </select>
                 <input id="modal-add-name" class="form-input" th:placeholder="#{finance.form.category}" placeholder="카테고리명" maxlength="100">
-                <button id="modal-add-btn" class="btn-save" type="button" style="flex:0; padding:8px 16px;" th:text="#{finance.category.add}">추가</button>
+                <button id="modal-add-btn" class="btn-save" type="button" th:text="#{finance.category.add}">추가</button>
             </div>
         </div>
     </div>
