@@ -118,6 +118,12 @@ public class FinanceTxService {
         BigDecimal dailyAverage = totalExpense.divide(BigDecimal.valueOf(elapsedDays), 0, RoundingMode.HALF_UP);
         BigDecimal balance = totalIncome.subtract(totalExpense);
 
+        List<FinanceMonthlySummaryDto.CategorySummary> incomeByCategory = txRepository
+                .sumByCategoryAndPeriod(normalizedUserId, "INCOME", startDate, endDate)
+                .stream()
+                .map(row -> toCategorySummary(row, categoryMap, totalIncome, Map.of()))
+                .toList();
+
         List<FinanceMonthlySummaryDto.CategorySummary> expenseByCategory = txRepository
                 .sumByCategoryAndPeriod(normalizedUserId, "EXPENSE", startDate, endDate)
                 .stream()
@@ -133,6 +139,7 @@ public class FinanceTxService {
                 variableExpense,
                 dailyAverage,
                 balance,
+                incomeByCategory,
                 expenseByCategory
         );
     }

@@ -1040,3 +1040,14 @@ textarea.form-input {
     margin-top: 6px;
 }
 .budget-delete-btn:hover { color: #d94848; border-color: #f0c4c4; background: #fdf3f3; }
+.income-expense-compare { margin-bottom: 20px; padding: 14px; border-radius: 10px; background: #f8f9fa; }
+.compare-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.compare-label { font-size: 0.75rem; font-weight: 500; color: #8b919a; min-width: 32px; }
+.compare-bar-track { flex: 1; height: 8px; border-radius: 999px; background: #e4e7eb; overflow: hidden; }
+.compare-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.compare-bar-fill.income { background: #2d9d5e; }
+.compare-bar-fill.expense { background: #d94848; }
+.compare-value { font-size: 0.78rem; font-weight: 600; color: #1b1d21; min-width: 90px; text-align: right; }
+.compare-balance { text-align: right; font-size: 0.82rem; font-weight: 600; color: #3b6fd4; margin-top: 4px; }
+.category-section-block { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.chart-bar-fill.income { background: #2d9d5e; }

@@ -56,7 +56,7 @@
         <div id="finance-insight" class="finance-insight"></div>
 
         <div class="dashboard-tab-bar" role="tablist" aria-label="dashboard tabs">
-            <button type="button" class="dashboard-tab active" data-tab="chart">지출 분석</button>
+            <button type="button" class="dashboard-tab active" data-tab="chart" th:text="#{finance.tab.analysis}">수입·지출 분석</button>
             <button type="button" class="dashboard-tab" data-tab="budget">예산</button>
             <button type="button" class="dashboard-tab" data-tab="calendar" th:text="#{finance.tab.calendar}">달력</button>
         </div>
@@ -66,7 +66,7 @@
                 <div class="card-head">
                     <div>
                         <p class="card-kicker" th:text="#{finance.chart.title}">Spending by category</p>
-                        <h2 class="card-title" th:text="#{finance.summary.expense}">Expense</h2>
+                        <h2 class="card-title" th:text="#{finance.chart.title}">Income & Expense</h2>
                     </div>
                     <span class="card-badge" th:text="#{finance.unit}">KRW</span>
                 </div>
@@ -344,7 +344,8 @@
         budgetDeleteConfirm: /*[[#{finance.budget.deleteConfirm}]]*/ 'Delete this budget?',
         budgetTotalBudget: /*[[#{finance.budget.totalBudget}]]*/ 'Total budget',
         budgetAmountPlaceholder: /*[[#{finance.budget.amountPlaceholder}]]*/ 'Budget amount',
-        chartTitle: /*[[#{finance.chart.title}]]*/ 'Spending by category',
+        tabAnalysis: /*[[#{finance.tab.analysis}]]*/ 'Income & Expense',
+        chartTitle: /*[[#{finance.chart.title}]]*/ 'Income & Expense',
         comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
         insightTopCategory: /*[[#{finance.insight.topCategory}]]*/ 'Top spending category this month:',
         categoryManage: /*[[#{finance.category.manage}]]*/ 'Manage categories',

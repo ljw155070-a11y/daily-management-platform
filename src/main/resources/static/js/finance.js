@@ -1025,6 +1025,9 @@ function normalizeSummary(summary) {
   normalized.variableExpense = toNumber(normalized.variableExpense);
   normalized.dailyAverage = toNumber(normalized.dailyAverage);
   normalized.balance = toNumber(normalized.balance ?? normalized.totalIncome - normalized.totalExpense);
+  normalized.incomeByCategory = Array.isArray(normalized.incomeByCategory)
+    ? normalized.incomeByCategory.map((item) => ({ ...item, amount: toNumber(item.amount), percentage: Number(item.percentage || 0), changePercent: item.changePercent == null ? null : Number(item.changePercent) }))
+    : [];
   normalized.expenseByCategory = Array.isArray(normalized.expenseByCategory)
     ? normalized.expenseByCategory.map((item) => ({ ...item, amount: toNumber(item.amount), percentage: Number(item.percentage || 0), changePercent: item.changePercent == null ? null : Number(item.changePercent) }))
     : [];
