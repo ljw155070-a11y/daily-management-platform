@@ -25,7 +25,7 @@
     flex-direction: column;
     background: #fff;
     overflow: hidden;
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid #e8eaed;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -36,15 +36,15 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 12px;
-    padding: 20px 24px 18px;
-    border-radius: 16px;
+    padding: 16px 20px 14px;
+    border-radius: 14px;
     background: #1b1d21;
     color: #fff;
 }
 
 .finance-page-kicker {
-    margin: 0 0 6px;
-    font-size: 0.75rem;
+    margin: 0 0 2px;
+    font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -53,7 +53,7 @@
 
 .finance-page-title {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
     font-weight: 600;
     letter-spacing: -0.03em;
     line-height: 1.1;
@@ -71,7 +71,7 @@
 .hero-title-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .hero-month-btn {
@@ -97,14 +97,14 @@
 .finance-summary-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
+    gap: 8px;
 }
 
 .summary-card {
     position: relative;
     overflow: hidden;
-    padding: 16px;
-    border-radius: 14px;
+    padding: 14px 12px;
+    border-radius: 12px;
     background: #fff;
     border: 1px solid #e8eaed;
 }
@@ -177,8 +177,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 6px;
-    font-size: 0.75rem;
+    margin-bottom: 4px;
+    font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -196,7 +196,7 @@
 
 .summary-value {
     display: block;
-    font-size: clamp(1rem, 1.5vw, 1.3rem);
+    font-size: clamp(0.95rem, 1.3vw, 1.2rem);
     font-weight: 600;
     letter-spacing: -0.02em;
     color: #1b1d21;
@@ -205,7 +205,7 @@
 .summary-sub {
     display: block;
     margin-top: 4px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 400;
     color: #8b919a;
 }
@@ -213,7 +213,7 @@
 .finance-dashboard-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
 }
 
 .finance-insight {
@@ -263,7 +263,7 @@
 
 .dashboard-card {
     padding: 20px;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #fff;
     border: 1px solid #e8eaed;
 }
@@ -271,7 +271,7 @@
 .card-head {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 16px;
 }
 
@@ -326,7 +326,7 @@
 .category-chart-top {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
@@ -371,7 +371,7 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 1px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #8b919a;
     white-space: nowrap;
 }
@@ -421,7 +421,7 @@
 .budget-item-top {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
@@ -440,7 +440,7 @@
 }
 
 .budget-percent {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #3b6fd4;
 }
@@ -465,9 +465,9 @@
 .budget-meta-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     margin-top: 8px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 400;
     color: #8b919a;
 }
@@ -492,7 +492,7 @@
 .panel-card-head {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 14px;
 }
 
@@ -828,15 +828,9 @@ textarea.form-input {
     font-size: 0.84rem;
     font-weight: 400;
     text-align: center;
-    padding: 16px;
+    padding: 14px 12px;
 }
 
-@media (max-width: 1280px) {
-    .summary-cards,
-    .finance-summary-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
 
 @media (max-width: 1180px) {
     .finance-summary-grid {
@@ -861,7 +855,7 @@ textarea.form-input {
 @media (max-width: 760px) {
     .finance-layout {
         padding: 12px;
-        gap: 12px;
+        gap: 8px;
     }
 
     .finance-hero-card {
@@ -1070,9 +1064,9 @@ textarea.form-input {
 .week-summary {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 8px;
     margin-top: 8px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 500;
 }
 
