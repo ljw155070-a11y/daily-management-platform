@@ -117,6 +117,15 @@
                 </div>
                 <div id="budget-empty" class="empty-state" th:text="#{finance.budget.set}">Set budget</div>
             </article>
+            <div id="dashboard-calendar" class="dashboard-card dashboard-panel dashboard-tab-content" data-panel="calendar" style="display:none">
+                <div class="card-head">
+                    <div>
+                        <p class="card-kicker">CALENDAR</p>
+                        <h2 class="card-title" th:text="#{finance.tab.calendar}">달력</h2>
+                    </div>
+                </div>
+                <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
         </div>
     </section>
 
@@ -307,6 +316,7 @@
         monthNext: /*[[#{finance.month.next}]]*/ 'Next',
         unit: /*[[#{finance.unit}]]*/ 'KRW',
         deleteLabel: /*[[#{common.delete}]]*/ 'Delete',
+        copyLabel: /*[[#{finance.action.copy}]]*/ 'Copy',
         editLabel: /*[[#{common.edit}]]*/ 'Edit',
         cancelLabel: /*[[#{common.cancel}]]*/ 'Cancel'
     };

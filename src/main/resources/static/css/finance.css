@@ -778,6 +778,8 @@ textarea.form-input {
     background: #f0f5fc;
 }
 
+.action-btn.copy:hover { color:#3b6fd4; border-color:#b8d0f0; background:#f0f5fc; }
+
 .action-btn.delete:hover {
     color: #d94848;
     border-color: #f0c4c4;
@@ -921,7 +923,8 @@ textarea.form-input {
 }
 
 .calendar-cell.today {
-    border: 1px solid #3b6fd4;
+    border: 1.5px solid #3b6fd4;
+    background: #f0f5fc;
 }
 
 .calendar-cell.empty {
@@ -946,4 +949,9 @@ textarea.form-input {
 
 .calendar-amount.zero {
     color: #bec3cb;
+}
+
+.calendar-no-spend {
+    font-size: 0.6rem;
+    color: #2d9d5e;
 }

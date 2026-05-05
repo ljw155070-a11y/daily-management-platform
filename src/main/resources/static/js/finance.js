@@ -139,65 +139,62 @@ function renderBudgetBars() {
 }
 
 function renderCalendar() {
-  if (!els.calendarGrid) return;
+  const calendarGrid = document.getElementById("calendar-grid");
+  if (!calendarGrid) return;
 
-  const year = Number(CURRENT_YEAR);
-  const month = Number(CURRENT_MONTH);
-  const firstDay = new Date(year, month - 1, 1);
+  const headers = ["일", "월", "화", "수", "목", "금", "토"];
+  const firstDay = new Date(CURRENT_YEAR, CURRENT_MONTH - 1, 1);
   const firstWeekday = firstDay.getDay();
-  const totalDays = new Date(year, month, 0).getDate();
+  const totalDays = new Date(CURRENT_YEAR, CURRENT_MONTH, 0).getDate();
   const today = new Date();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month - 1;
-  const expenseMap = new Map();
+  const isCurrentMonth = today.getFullYear() === CURRENT_YEAR && today.getMonth() === CURRENT_MONTH - 1;
+  const dailyMap = {};
 
-  txList.forEach((tx) => {
-    if (tx.txType !== "EXPENSE" || !tx.txDate) return;
-    const txDate = new Date(`${tx.txDate}T00:00:00`);
-    if (Number.isNaN(txDate.getTime())) return;
-    if (txDate.getFullYear() !== year || txDate.getMonth() !== month - 1) return;
-
-    const day = txDate.getDate();
-    expenseMap.set(day, (expenseMap.get(day) || 0) + toNumber(tx.amount));
+  txList.filter(t => t.txType === "EXPENSE" && t.txDate).forEach(t => {
+    const parts = String(t.txDate).split("-");
+    if (parts.length !== 3) return;
+    const txYear = Number(parts[0]);
+    const txMonth = Number(parts[1]);
+    const day = Number(parts[2]);
+    if (txYear !== CURRENT_YEAR || txMonth !== CURRENT_MONTH || !Number.isFinite(day)) return;
+    dailyMap[day] = (dailyMap[day] || 0) + Number(t.amount || 0);
   });
 
-  const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-  const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
-    const base = new Date(2026, 4, 3 + index);
-    return weekdayFormatter.format(base);
+  const html = [];
+  headers.forEach((label) => {
+    html.push(`<div class="calendar-header">${label}</div>`);
   });
 
-  const cells = [];
-  weekdayLabels.forEach((label) => {
-    cells.push(`<div class="calendar-header">${escHtml(label)}</div>`);
-  });
-
-  for (let index = 0; index < firstWeekday; index += 1) {
-    cells.push('<div class="calendar-cell empty"></div>');
+  for (let i = 0; i < firstWeekday; i += 1) {
+    html.push('<div class="calendar-cell empty"></div>');
   }
 
   for (let day = 1; day <= totalDays; day += 1) {
     const weekday = (firstWeekday + day - 1) % 7;
-    const amount = expenseMap.get(day) || 0;
-    const isToday = isCurrentMonth && today.getDate() === day;
-    const dayClasses = ['calendar-day'];
-    if (weekday === 0) dayClasses.push('sunday');
-    if (weekday === 6) dayClasses.push('saturday');
+    const amount = dailyMap[day] || 0;
+    const cellClasses = ["calendar-cell"];
+    const dayClasses = ["calendar-day"];
 
-    const cellClasses = ['calendar-cell'];
-    if (isToday) cellClasses.push('today');
+    if (isCurrentMonth && today.getDate() === day) {
+      cellClasses.push("today");
+    }
+    if (weekday === 0) dayClasses.push("sunday");
+    if (weekday === 6) dayClasses.push("saturday");
 
-    const amountText = amount > 0 ? formatAmount(amount) : '-';
-    const amountClass = amount > 0 ? 'calendar-amount' : 'calendar-amount zero';
+    const amountHtml = amount > 0
+      ? `<div class="calendar-amount">${escHtml(formatAmount(amount))}</div>`
+      : '<div class="calendar-no-spend"></div>';
 
-    cells.push(`
-      <div class="${cellClasses.join(' ')}">
-        <div class="${dayClasses.join(' ')}">${day}</div>
-        <div class="${amountClass}">${escHtml(amountText)}</div>
+    html.push(`
+      <div class="${cellClasses.join(" ")}">
+        <div class="${dayClasses.join(" ")}">${day}</div>
+        ${amountHtml}
       </div>`);
   }
 
-  els.calendarGrid.innerHTML = cells.join('');
+  calendarGrid.innerHTML = html.join("");
 }
+
 function renderHistory() {
   if (!els.historyList) return;
 
@@ -426,6 +423,32 @@ function startEdit(id) {
   if (els.cancel) els.cancel.style.display = "";
 }
 
+function copyTransaction(id) {
+  const tx = txList.find((item) => item.id === id);
+  if (!tx) return;
+
+  editingId = null;
+  if (els.editId) els.editId.value = "";
+
+  currentTxType = tx.txType || "EXPENSE";
+  syncTypeButtons();
+  populateCategoryOptions(currentTxType, tx.categoryId);
+  syncFixedFieldVisibility();
+  syncCustomCategoryVisibility();
+  hideCustomCategoryGroup();
+
+  if (els.amount) els.amount.value = tx.amount ?? "";
+  setTodayDate();
+  if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
+  if (els.paymentMethod) els.paymentMethod.value = tx.paymentMethod || "CASH";
+  if (els.description) els.description.value = tx.description || "";
+  if (els.formTitle) els.formTitle.textContent = TEXT.formTitle;
+  if (els.save) {
+    els.save.textContent = TEXT.formSave;
+    els.save.disabled = false;
+  }
+  if (els.cancel) els.cancel.style.display = "none";
+}
 function resetForm() {
   editingId = null;
   if (els.editId) els.editId.value = "";
