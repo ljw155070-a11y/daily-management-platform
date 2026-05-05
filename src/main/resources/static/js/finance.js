@@ -3,6 +3,7 @@ let editingId = null;
 let currentTxType = "EXPENSE";
 let summaryState = normalizeSummary(SUMMARY);
 let selectedCalendarDay = null;
+let calendarDetailView = "daily";
 const DEFAULT_TX_TYPE = document.querySelector(".finance-type-btn.active")?.dataset.value || document.querySelector(".finance-type-btn")?.dataset.value || "EXPENSE";
 
 const categoryList = Array.isArray(CATEGORIES) ? [...CATEGORIES] : [];
@@ -234,11 +235,30 @@ function handleCalendarClick(event) {
 
   showDayDetail(day);
 }
-
 function showDayDetail(day) {
   selectedCalendarDay = day;
+  calendarDetailView = "daily";
   renderCalendar();
   renderCalendarDayDetail();
+}
+
+function showWeekDetail(day) {
+  selectedCalendarDay = day;
+  calendarDetailView = "weekly";
+  renderCalendar();
+  renderCalendarDayDetail();
+}
+
+function handleCalendarDetailToggle(event) {
+  const button = event.target.closest(".detail-toggle-btn");
+  if (!button || selectedCalendarDay == null) return;
+
+  if (button.dataset.view === "weekly") {
+    showWeekDetail(selectedCalendarDay);
+    return;
+  }
+
+  showDayDetail(selectedCalendarDay);
 }
 
 function renderCalendarDayDetail() {
@@ -249,13 +269,18 @@ function renderCalendarDayDetail() {
     return;
   }
 
-  const items = getTransactionsByDay(selectedCalendarDay);
-  const incomeSum = items
-    .filter((tx) => tx.txType === "INCOME")
-    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
-  const expenseSum = items
-    .filter((tx) => tx.txType === "EXPENSE")
-    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+  if (calendarDetailView === "weekly") {
+    renderCalendarWeekDetail(selectedCalendarDay);
+    return;
+  }
+
+  renderCalendarDailyDetail(selectedCalendarDay);
+}
+
+function renderCalendarDailyDetail(day) {
+  const items = getTransactionsByDay(day);
+  const incomeSum = sumTransactions(items, "INCOME");
+  const expenseSum = sumTransactions(items, "EXPENSE");
   const balance = incomeSum - expenseSum;
 
   const listHtml = items.length > 0
@@ -274,7 +299,11 @@ function renderCalendarDayDetail() {
 
   els.calendarDayDetail.innerHTML = `
     <div class="day-detail-header">
-      <h4>${CURRENT_MONTH}월 ${selectedCalendarDay}일</h4>
+      <h4>${CURRENT_MONTH}월 ${day}일</h4>
+      <div class="day-detail-toggle">
+        <button class="detail-toggle-btn active" data-view="daily">${escHtml(TEXT.calendarDaily)}</button>
+        <button class="detail-toggle-btn" data-view="weekly">${escHtml(TEXT.calendarWeekly)}</button>
+      </div>
       <div class="day-detail-summary">
         <span class="day-income">${escHtml(TEXT.summaryIncome)} +${formatAmount(incomeSum)}</span>
         <span class="day-expense">${escHtml(TEXT.summaryExpense)} -${formatAmount(expenseSum)}</span>
@@ -285,19 +314,95 @@ function renderCalendarDayDetail() {
   els.calendarDayDetail.style.display = "block";
 }
 
+function renderCalendarWeekDetail(day) {
+  const weekDates = getWeekDates(day);
+  let weekIncome = 0;
+  let weekExpense = 0;
+
+  const columnsHtml = weekDates.map((date) => {
+    const items = getTransactionsByDate(date);
+    const incomeSum = sumTransactions(items, "INCOME");
+    const expenseSum = sumTransactions(items, "EXPENSE");
+    const balance = incomeSum - expenseSum;
+    weekIncome += incomeSum;
+    weekExpense += expenseSum;
+
+    const itemsHtml = items.length > 0
+      ? items.map((tx) => `<div class="week-day-item ${tx.txType === "INCOME" ? "income" : "expense"}">${escHtml(tx.description || tx.categoryName || TEXT.formCategory)}</div>`).join("")
+      : `<div class="week-day-item">-</div>`;
+
+    return `
+      <div class="week-day-col">
+        <div class="week-day-header">${escHtml(getWeekdayLabel(date))} ${date.getDate()}일</div>
+        ${itemsHtml}
+        <div class="week-day-total">합계: ${formatSignedAmount(balance)}</div>
+      </div>`;
+  }).join("");
+
+  const weekBalance = weekIncome - weekExpense;
+  els.calendarDayDetail.innerHTML = `
+    <div class="day-detail-header">
+      <h4>${CURRENT_MONTH}월 ${day}일</h4>
+      <div class="day-detail-toggle">
+        <button class="detail-toggle-btn" data-view="daily">${escHtml(TEXT.calendarDaily)}</button>
+        <button class="detail-toggle-btn active" data-view="weekly">${escHtml(TEXT.calendarWeekly)}</button>
+      </div>
+      <div class="day-detail-summary">
+        <span class="day-income">${escHtml(TEXT.summaryIncome)} +${formatAmount(weekIncome)}</span>
+        <span class="day-expense">${escHtml(TEXT.summaryExpense)} -${formatAmount(weekExpense)}</span>
+        <span class="day-balance">합계 ${formatSignedAmount(weekBalance)}</span>
+      </div>
+    </div>
+    <div class="week-detail-grid">${columnsHtml}</div>
+    <div class="week-summary">
+      <span class="day-income">${escHtml(TEXT.summaryIncome)} +${formatAmount(weekIncome)}</span>
+      <span class="day-expense">${escHtml(TEXT.summaryExpense)} -${formatAmount(weekExpense)}</span>
+      <span class="day-balance">${escHtml(TEXT.calendarWeekTotal)} ${formatSignedAmount(weekBalance)}</span>
+    </div>`;
+  els.calendarDayDetail.style.display = "block";
+}
+
 function getTransactionsByDay(day) {
+  return getTransactionsByDate(new Date(CURRENT_YEAR, CURRENT_MONTH - 1, day));
+}
+
+function getTransactionsByDate(date) {
   return txList
-    .filter((tx) => matchesCurrentMonthDay(tx, day))
+    .filter((tx) => matchesDate(tx, date))
     .sort((a, b) => compareTransactions(b, a));
 }
 
-function matchesCurrentMonthDay(tx, day) {
+function matchesDate(tx, date) {
   if (!tx?.txDate) return false;
   const parts = String(tx.txDate).split("-");
   if (parts.length !== 3) return false;
-  return Number(parts[0]) === CURRENT_YEAR
-    && Number(parts[1]) === CURRENT_MONTH
-    && Number(parts[2]) === day;
+  return Number(parts[0]) === date.getFullYear()
+    && Number(parts[1]) === date.getMonth() + 1
+    && Number(parts[2]) === date.getDate();
+}
+
+function sumTransactions(items, txType) {
+  return items
+    .filter((tx) => tx.txType === txType)
+    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+}
+
+function getWeekDates(day) {
+  const base = new Date(CURRENT_YEAR, CURRENT_MONTH - 1, day);
+  const dayOfWeek = base.getDay();
+  const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const start = new Date(base);
+  start.setDate(base.getDate() - offset);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
+}
+
+function getWeekdayLabel(date) {
+  return ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
 }
 
 function renderInsight() {
@@ -403,6 +508,7 @@ function bindEvents() {
   els.modalExpenseList?.addEventListener("click", handleCategoryModalAction);
   els.modalIncomeList?.addEventListener("click", handleCategoryModalAction);
   els.calendarGrid?.addEventListener("click", handleCalendarClick);
+  els.calendarDayDetail?.addEventListener("click", handleCalendarDetailToggle);
 
   els.dashboardTabs.forEach((button) => {
     button.addEventListener("click", () => {
