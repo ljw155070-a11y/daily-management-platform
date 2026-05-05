@@ -153,7 +153,7 @@ function renderBudgetBars() {
       </div>`;
   }).join("");
 
-  toggleEmptyState(els.budgetList, els.budgetEmpty, budgetList.length === 0, TEXT.budgetSet);
+  toggleEmptyState(els.budgetList, els.budgetEmpty, budgetList.length === 0, TEXT.budgetEmpty);
 }
 
 function renderCalendar() {

@@ -64,10 +64,8 @@
             <article id="dashboard-chart-panel" class="dashboard-card chart-card dashboard-panel active" data-panel="chart">
                 <div class="card-head">
                     <div>
-                        <p class="card-kicker" th:text="#{finance.chart.title}">Spending by category</p>
                         <h2 class="card-title" th:text="#{finance.chart.title}">Income & Expense</h2>
                     </div>
-                    <span class="card-badge" th:text="#{finance.unit}">KRW</span>
                 </div>
                 <div id="category-chart-list" class="category-chart-list chart-section">
                     <div class="category-chart-item" th:each="item : ${summary.expenseByCategory()}">
@@ -92,10 +90,8 @@
             <article id="dashboard-budget-panel" class="dashboard-card budget-card dashboard-panel" data-panel="budget">
                 <div class="card-head">
                     <div>
-                        <p class="card-kicker" th:text="#{finance.budget.title}">Budget</p>
-                        <h2 class="card-title" th:text="#{finance.budget.set}">Set budget</h2>
+                        <h2 class="card-title" th:text="#{finance.budget.title}">Budget</h2>
                     </div>
-                    <span class="card-badge" th:text="${budgets.size()}">0</span>
                 </div>
                 <div id="budget-list" class="budget-list budget-section">
                     <div class="budget-item" th:each="budget : ${budgets}"
@@ -116,7 +112,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="budget-empty" class="empty-state" th:text="#{finance.budget.set}">Set budget</div>
+                <div id="budget-empty" class="empty-state" th:text="#{finance.budget.empty}">No budgets set yet. Select a category above and set a budget.</div>
             </article>
             <div id="dashboard-calendar" class="dashboard-card dashboard-panel dashboard-tab-content" data-panel="calendar" style="display:none">
                 <div class="card-head">
@@ -336,6 +332,7 @@
         confirmDelete: /*[[#{finance.confirm.delete}]]*/ 'Delete this transaction?',
         budgetTitle: /*[[#{finance.budget.title}]]*/ 'Budget',
         budgetSet: /*[[#{finance.budget.set}]]*/ 'Set budget',
+        budgetEmpty: /*[[#{finance.budget.empty}]]*/ 'No budgets set yet. Select a category above and set a budget.',
         budgetSpent: /*[[#{finance.budget.spent}]]*/ 'Spent',
         budgetRemaining: /*[[#{finance.budget.remaining}]]*/ 'Remaining',
         budgetSave: /*[[#{finance.budget.save}]]*/ 'Set',
