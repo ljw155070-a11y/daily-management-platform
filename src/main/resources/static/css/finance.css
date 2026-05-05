@@ -68,45 +68,29 @@
     display: none;
 }
 
-.month-nav,
-.finance-month-nav {
+.hero-title-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px;
-    border-radius: 12px;
-    background: #ffffff;
-    border: 1px solid #e8eaed;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    gap: 12px;
 }
 
-.month-nav-btn {
+.hero-month-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 72px;
-    padding: 8px 14px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
-    background: #f3f4f6;
-    color: #5f6570;
-    font-size: 0.8rem;
-    font-weight: 500;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
     text-decoration: none;
     transition: background 0.15s;
 }
 
-.month-nav-btn:hover {
-    background: #e8eaed;
-}
-
-.month-nav-current {
-    min-width: 120px;
-    text-align: center;
-    padding: 0 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
+.hero-month-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
 }
 
 .summary-cards,
@@ -884,39 +868,9 @@ textarea.form-input {
         padding: 20px 20px 18px;
     }
 
-    .month-nav,
-    .finance-month-nav {
-            flex-wrap: wrap;
-        border-radius: 12px;
-    }
 
-    .month-nav-btn {
-        min-width: 0;
-        flex: 1;
-    }
-
-    .month-nav-current {
-        width: 100%;
-        order: -1;
-        min-width: 0;
-        padding-bottom: 6px;
-    }
-
-    .summary-cards,
-    .finance-summary-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .transaction-item {
-        flex-direction: column;
-    }
-
-    .transaction-actions-row {
-        width: 100%;
-    }
-
-    .action-btn {
-        flex: 1;
+    .hero-title-row {
+        gap: 8px;
     }
 
     .budget-meta-row,

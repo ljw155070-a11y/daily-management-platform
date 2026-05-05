@@ -49,7 +49,6 @@ const els = {
   typeButtons: Array.from(document.querySelectorAll(".finance-type-btn")),
   dashboardTabs: Array.from(document.querySelectorAll(".dashboard-tab")),
   dashboardPanels: Array.from(document.querySelectorAll(".dashboard-panel")),
-  monthButtons: Array.from(document.querySelectorAll(".month-nav-btn")),
   categorySettingsBtn: document.getElementById("category-settings-btn"),
   categoryModal: document.getElementById("category-modal"),
   modalClose: document.getElementById("modal-close"),
@@ -423,14 +422,6 @@ function bindEvents() {
     if (target.dataset.action === "delete") deleteTransaction(id);
   });
 
-  els.monthButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      const direction = Number(button.dataset.direction || 0);
-      if (direction !== 0) navigateMonth(direction);
-    });
-  });
-}
 
 async function handleSubmit() {
   const formData = collectFormData();
@@ -536,12 +527,6 @@ async function deleteTransaction(id) {
     console.error("deleteTransaction error:", error);
     showToast(TEXT.toastDeleteFailed);
   }
-}
-
-function navigateMonth(direction) {
-  const base = new Date(CURRENT_YEAR, CURRENT_MONTH - 1 + direction, 1);
-  const params = new URLSearchParams({ year: String(base.getFullYear()), month: String(base.getMonth() + 1) });
-  window.location.href = `/finance?${params.toString()}`;
 }
 
 function startEdit(id) {
