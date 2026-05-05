@@ -1021,3 +1021,22 @@ textarea.form-input {
 .cat-move { min-width:28px; height:28px; border:1px solid #e2e5e9; border-radius:6px; background:#fff; color:#5f6570; cursor:pointer; }
 .cat-move:hover { border-color:#b8d0f0; color:#3b6fd4; background:#f0f5fc; }
 .cat-move:disabled { cursor:not-allowed; opacity:0.35; }
+.budget-form { margin-bottom: 14px; }
+.budget-form-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.budget-form-row .form-input { flex: 1; font-size: 0.82rem; padding: 8px 10px; }
+.budget-delete-btn {
+    background: none;
+    border: 1px solid #e4e7eb;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #8b919a;
+    cursor: pointer;
+    margin-top: 6px;
+}
+.budget-delete-btn:hover { color: #d94848; border-color: #f0c4c4; background: #fdf3f3; }

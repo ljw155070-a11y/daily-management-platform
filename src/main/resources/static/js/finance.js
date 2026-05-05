@@ -21,6 +21,9 @@ const els = {
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
   budgetEmpty: document.getElementById("budget-empty"),
+  budgetCategory: document.getElementById("budget-category"),
+  budgetAmount: document.getElementById("budget-amount"),
+  budgetSaveBtn: document.getElementById("budget-save-btn"),
   calendarGrid: document.getElementById("calendar-grid"),
   calendarDayDetail: document.getElementById("calendar-day-detail"),
   historyList: document.getElementById("transaction-history-list"),
@@ -63,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
   populateFilterCategories();
+  populateBudgetCategoryOptions();
   setDashboardTab("chart");
   renderAll();
   bindEvents();
@@ -379,6 +383,8 @@ function bindEvents() {
   els.searchInput?.addEventListener("input", () => renderHistory());
   els.filterCategory?.addEventListener("change", () => renderHistory());
   els.filterPayment?.addEventListener("change", () => renderHistory());
+  els.budgetSaveBtn?.addEventListener("click", saveBudget);
+  els.budgetList?.addEventListener("click", handleBudgetListClick);
   els.categorySettingsBtn?.addEventListener("click", openCategoryModal);
   els.modalClose?.addEventListener("click", closeCategoryModal);
   els.modalAddBtn?.addEventListener("click", addCategoryFromModal);
@@ -607,6 +613,118 @@ function resetForm() {
   if (els.cancel) els.cancel.style.display = "none";
 }
 
+function populateBudgetCategoryOptions() {
+  if (!els.budgetCategory) return;
+
+  const selectedValue = els.budgetCategory.value || "";
+  const categories = getCategoriesByType("EXPENSE");
+  els.budgetCategory.innerHTML = [
+    `<option value="">${escHtml(TEXT.budgetTotalBudget)}</option>`,
+    ...categories.map((category) => `<option value="${category.id}">${escHtml(category.catName)}</option>`),
+  ].join("");
+  els.budgetCategory.value = categories.some((category) => String(category.id) === selectedValue) ? selectedValue : "";
+}
+
+async function saveBudget() {
+  const categoryId = els.budgetCategory?.value || null;
+  const amount = Number(els.budgetAmount?.value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert(TEXT.budgetAmountPlaceholder);
+    return;
+  }
+
+  const payload = {
+    categoryId: categoryId ? Number(categoryId) : null,
+    budgetYear: CURRENT_YEAR,
+    budgetMonth: CURRENT_MONTH,
+    amount,
+  };
+
+  try {
+    const response = await fetch("/finance/budgets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [CSRF_HEADER]: CSRF_TOKEN,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error("budget save failed");
+
+    const saved = await response.json();
+    upsertBudget(saved);
+    renderBudgetBars();
+    resetBudgetForm();
+  } catch (error) {
+    console.error("saveBudget error:", error);
+    showToast(TEXT.toastSaveFailed);
+  }
+}
+
+function handleBudgetListClick(event) {
+  const deleteButton = event.target.closest("button[data-action='delete-budget']");
+  if (deleteButton) {
+    event.stopPropagation();
+    const id = Number(deleteButton.dataset.id);
+    if (Number.isFinite(id)) {
+      deleteBudget(id);
+    }
+    return;
+  }
+
+  const item = event.target.closest(".budget-item[data-id]");
+  if (!item) return;
+  fillBudgetForm(item.dataset.categoryId || "", item.dataset.amount || "");
+}
+
+async function deleteBudget(id) {
+  if (!confirm(TEXT.budgetDeleteConfirm)) return;
+
+  try {
+    const response = await fetch(`/finance/budgets/${id}`, {
+      method: "DELETE",
+      headers: { [CSRF_HEADER]: CSRF_TOKEN },
+    });
+    if (!response.ok) throw new Error("budget delete failed");
+
+    const index = budgetList.findIndex((budget) => budget.id === id);
+    if (index !== -1) {
+      budgetList.splice(index, 1);
+    }
+    renderBudgetBars();
+    resetBudgetForm();
+  } catch (error) {
+    console.error("deleteBudget error:", error);
+    showToast(TEXT.toastDeleteFailed);
+  }
+}
+
+function upsertBudget(savedBudget) {
+  const index = budgetList.findIndex((budget) => String(budget.categoryId ?? "") === String(savedBudget.categoryId ?? ""));
+  if (index === -1) {
+    budgetList.push(savedBudget);
+    return;
+  }
+  budgetList[index] = savedBudget;
+}
+
+function fillBudgetForm(categoryId, amount) {
+  if (els.budgetCategory) {
+    els.budgetCategory.value = categoryId || "";
+  }
+  if (els.budgetAmount) {
+    els.budgetAmount.value = amount || "";
+  }
+}
+
+function resetBudgetForm() {
+  if (els.budgetCategory) {
+    els.budgetCategory.value = "";
+  }
+  if (els.budgetAmount) {
+    els.budgetAmount.value = "";
+  }
+}
 function openCategoryModal() {
   renderCategoryModal();
   if (els.categoryModal) {
