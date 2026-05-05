@@ -10,6 +10,7 @@
 <div class="finance-layout">
     <section class="finance-dashboard">
         <div class="finance-hero-card">
+            <button type="button" id="category-settings-btn" class="hero-settings-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}">⚙</button>
             <div>
                 <p class="finance-page-kicker" th:text="#{page.finance.title}">Finance</p>
                 <h1 class="finance-page-title">
@@ -19,15 +20,13 @@
                 </h1>
                 <p class="finance-page-desc" th:text="#{page.finance.desc}">Track income and expenses, manage budgets, and view monthly analysis.</p>
             </div>
-            <button type="button" id="category-settings-btn" class="hero-icon-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}">⚙</button>
-        </div>
-
-        <div class="finance-month-nav month-nav">
-            <a class="month-nav-btn" data-direction="-1" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}" th:text="#{finance.month.prev}">Previous</a>
-            <div class="month-nav-current">
-                <span th:text="${year}">2025</span><span>년 </span><span th:text="${month}">5</span><span>월</span>
+            <div class="finance-month-nav month-nav">
+                <a class="month-nav-btn" data-direction="-1" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}" th:text="#{finance.month.prev}">Previous</a>
+                <div class="month-nav-current">
+                    <span th:text="${year}">2025</span><span>년 </span><span th:text="${month}">5</span><span>월</span>
+                </div>
+                <a class="month-nav-btn" data-direction="1" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}" th:text="#{finance.month.next}">Next</a>
             </div>
-            <a class="month-nav-btn" data-direction="1" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}" th:text="#{finance.month.next}">Next</a>
         </div>
 
         <div id="summary-cards" class="finance-summary-grid summary-cards">
