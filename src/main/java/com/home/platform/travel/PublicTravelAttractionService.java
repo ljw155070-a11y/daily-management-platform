@@ -28,29 +28,9 @@ public class PublicTravelAttractionService {
     private static final List<String> ALL_AREA_CODES = List.of(
             "1", "2", "3", "4", "5", "6", "7", "8",
             "31", "32", "33", "34", "35", "36", "37", "38", "39");
-    private static final Map<String, BoundingBox> AREA_BOUNDS = Map.ofEntries(
-            Map.entry("1", new BoundingBox(37.40, 37.72, 126.76, 127.20)),
-            Map.entry("2", new BoundingBox(37.32, 37.85, 126.36, 126.95)),
-            Map.entry("3", new BoundingBox(35.67, 36.02, 128.42, 128.76)),
-            Map.entry("4", new BoundingBox(35.75, 36.02, 128.46, 128.71)),
-            Map.entry("5", new BoundingBox(35.05, 35.25, 126.75, 127.00)),
-            Map.entry("6", new BoundingBox(35.02, 35.40, 128.75, 129.35)),
-            Map.entry("7", new BoundingBox(36.18, 36.55, 127.18, 127.55)),
-            Map.entry("8", new BoundingBox(33.10, 33.65, 126.10, 126.98)),
-            Map.entry("31", new BoundingBox(36.70, 38.35, 126.25, 127.85)),
-            Map.entry("32", new BoundingBox(37.00, 38.65, 127.05, 129.40)),
-            Map.entry("33", new BoundingBox(36.00, 37.50, 127.15, 128.75)),
-            Map.entry("34", new BoundingBox(35.90, 37.25, 125.95, 127.75)),
-            Map.entry("35", new BoundingBox(35.45, 37.35, 127.80, 129.60)),
-            Map.entry("36", new BoundingBox(34.45, 35.90, 127.45, 129.35)),
-            Map.entry("37", new BoundingBox(35.20, 36.45, 126.35, 127.95)),
-            Map.entry("38", new BoundingBox(33.85, 35.60, 125.05, 127.95)),
-            Map.entry("39", new BoundingBox(33.10, 33.65, 126.10, 126.98))
-    );
-
     private final PublicTravelAttractionRepository repository;
+    private final PublicTravelCoordinateHistoryRepository coordinateHistoryRepository;
     private final TourApiService tourApiService;
-    private final SgisService sgisService;
 
     // Set to true once at startup (or after sync) so we never run COUNT(*) per request again
     private final AtomicBoolean seeded = new AtomicBoolean(false);
@@ -60,16 +40,17 @@ public class PublicTravelAttractionService {
     private volatile Instant areaCacheExpiry = Instant.MIN;
 
     public PublicTravelAttractionService(PublicTravelAttractionRepository repository,
-                                         TourApiService tourApiService,
-                                         SgisService sgisService) {
+                                         PublicTravelCoordinateHistoryRepository coordinateHistoryRepository,
+                                         TourApiService tourApiService) {
         this.repository = repository;
+        this.coordinateHistoryRepository = coordinateHistoryRepository;
         this.tourApiService = tourApiService;
-        this.sgisService = sgisService;
     }
 
     @PostConstruct
     public void init() {
         if (repository.countByActiveFlag("Y") > 0) {
+            reapplyCoordinateHistory();
             seeded.set(true);
             // Pre-warm all 17 area caches in background — after this every region click is instant
             Thread prewarmer = new Thread(this::prewarmAllAreaCaches, "attraction-cache-prewarmer");
@@ -179,6 +160,7 @@ public class PublicTravelAttractionService {
                 toSave.add(entity);
             }
             repository.saveAll(toSave);
+            reapplyCoordinateHistory();
 
             List<PublicTravelAttraction> toDeactivate = new ArrayList<>();
             for (PublicTravelAttraction entity : existing) {
@@ -214,6 +196,37 @@ public class PublicTravelAttractionService {
         return repository.countByActiveFlag("Y");
     }
 
+    @Transactional
+    public TourApiAttractionDto updateCoordinates(String contentId, Double latitude, Double longitude, String reason) {
+        if (contentId == null || contentId.isBlank()) {
+            throw new IllegalArgumentException("contentId is required.");
+        }
+        if (latitude == null || longitude == null) {
+            throw new IllegalArgumentException("latitude and longitude are required.");
+        }
+
+        PublicTravelAttraction attraction = repository.findByExternalContentId(contentId)
+                .orElseThrow(() -> new IllegalArgumentException("Attraction not found: " + contentId));
+
+        attraction.setLatitude(latitude);
+        attraction.setLongitude(longitude);
+        repository.save(attraction);
+
+        PublicTravelCoordinateHistory history = new PublicTravelCoordinateHistory();
+        history.setExternalContentId(contentId);
+        history.setLatitude(latitude);
+        history.setLongitude(longitude);
+        history.setReason(trimToLength(reason, 500));
+        history.setActiveFlag("Y");
+        history.setLastAppliedAt(LocalDateTime.now());
+        coordinateHistoryRepository.save(history);
+
+        areaCache.clear();
+        areaCacheExpiry = Instant.MIN;
+
+        return toDto(attraction);
+    }
+
     private List<TourApiAttractionDto> getFromCacheOrDb(String areaCode) {
         if (Instant.now().isBefore(areaCacheExpiry)) {
             List<TourApiAttractionDto> cached = areaCache.get(areaCode);
@@ -222,9 +235,10 @@ public class PublicTravelAttractionService {
             }
         }
 
-        List<PublicTravelAttraction> entities = repository.findTop300ByAreaCodeAndActiveFlag(areaCode, "Y");
-        repairSuspiciousCoordinates(entities, areaCode);
-        List<TourApiAttractionDto> result = entities.stream().map(this::toDto).toList();
+        List<TourApiAttractionDto> result = repository.findByAreaCodeAndActiveFlagOrderByTitleAsc(areaCode, "Y")
+                .stream()
+                .map(this::toDto)
+                .toList();
 
         areaCache.put(areaCode, result);
         if (!Instant.now().isBefore(areaCacheExpiry)) {
@@ -248,7 +262,6 @@ public class PublicTravelAttractionService {
         entity.setAreaCode(trimToLength(dto.areaCode(), 20));
         entity.setActive(true);
         entity.setLastSyncedAt(syncedAt);
-        repairSuspiciousCoordinate(entity, entity.getAreaCode());
     }
 
     private TourApiAttractionDto toDto(PublicTravelAttraction entity) {
@@ -340,53 +353,40 @@ public class PublicTravelAttractionService {
         return (message == null || message.isBlank()) ? current.getClass().getSimpleName() : message;
     }
 
-    private void repairSuspiciousCoordinates(List<PublicTravelAttraction> entities, String areaCode) {
-        List<PublicTravelAttraction> changed = new ArrayList<>();
-        for (PublicTravelAttraction entity : entities) {
-            if (repairSuspiciousCoordinate(entity, areaCode)) {
-                changed.add(entity);
-            }
-        }
-        if (!changed.isEmpty()) {
-            repository.saveAll(changed);
-        }
-    }
-
-    private boolean repairSuspiciousCoordinate(PublicTravelAttraction entity, String areaCode) {
-        if (entity == null || !needsCoordinateRepair(areaCode, entity.getLatitude(), entity.getLongitude())) {
-            return false;
-        }
-        if (entity.getAddress() == null || entity.getAddress().isBlank()) {
-            return false;
+    private void reapplyCoordinateHistory() {
+        List<PublicTravelCoordinateHistory> histories = coordinateHistoryRepository.findByActiveFlagOrderByUpdatedAtDesc("Y");
+        if (histories.isEmpty()) {
+            return;
         }
 
-        try {
-            SgisService.GeoPoint geocoded = sgisService.geocodeAddressWgs84(entity.getAddress());
-            if (geocoded == null || needsCoordinateRepair(areaCode, geocoded.lat(), geocoded.lng())) {
-                return false;
-            }
-
-            entity.setLatitude(geocoded.lat());
-            entity.setLongitude(geocoded.lng());
-            log.info("Repaired attraction coordinates: {} -> ({}, {})", entity.getTitle(), geocoded.lat(), geocoded.lng());
-            return true;
-        } catch (Exception e) {
-            log.warn("Failed to repair attraction coordinates for {}: {}", entity.getTitle(), e.getMessage());
-            return false;
+        Map<String, PublicTravelCoordinateHistory> latestByContentId = new LinkedHashMap<>();
+        for (PublicTravelCoordinateHistory history : histories) {
+            latestByContentId.putIfAbsent(history.getExternalContentId(), history);
         }
-    }
 
-    private boolean needsCoordinateRepair(String areaCode, Double latitude, Double longitude) {
-        if (latitude == null || longitude == null) {
-            return true;
+        List<PublicTravelAttraction> attractionsToUpdate = new ArrayList<>();
+        List<PublicTravelCoordinateHistory> historiesToUpdate = new ArrayList<>();
+        LocalDateTime appliedAt = LocalDateTime.now();
+
+        for (PublicTravelCoordinateHistory history : latestByContentId.values()) {
+            repository.findByExternalContentId(history.getExternalContentId()).ifPresent(attraction -> {
+                boolean changed = !history.getLatitude().equals(attraction.getLatitude())
+                        || !history.getLongitude().equals(attraction.getLongitude());
+                if (changed) {
+                    attraction.setLatitude(history.getLatitude());
+                    attraction.setLongitude(history.getLongitude());
+                    attractionsToUpdate.add(attraction);
+                }
+                history.setLastAppliedAt(appliedAt);
+                historiesToUpdate.add(history);
+            });
         }
-        BoundingBox bounds = AREA_BOUNDS.get(areaCode);
-        return bounds != null && !bounds.contains(latitude, longitude);
-    }
 
-    private record BoundingBox(double minLat, double maxLat, double minLng, double maxLng) {
-        boolean contains(double lat, double lng) {
-            return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+        if (!attractionsToUpdate.isEmpty()) {
+            repository.saveAll(attractionsToUpdate);
+        }
+        if (!historiesToUpdate.isEmpty()) {
+            coordinateHistoryRepository.saveAll(historiesToUpdate);
         }
     }
 }

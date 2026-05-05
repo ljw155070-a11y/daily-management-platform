@@ -25,6 +25,8 @@ const markerMap = new Map();
 const publicMarkerMap = new Map();
 let selectedMarkerOverlay = null;
 let activeInfoWindow = null;
+let editingPublicCoordinateId = null;
+let editingPublicCoordinateOriginal = null;
 
 let selectedPublicAttractionId = null;
 let mapRegisterOverlay = null;
@@ -320,14 +322,7 @@ function addPublicMarker(attraction, nodraw = false) {
 
   const position = new kakao.maps.LatLng(attraction.latitude, attraction.longitude);
   const marker = new kakao.maps.Marker({ position, image: markerImage });
-  const infoContent = buildMapInfoWindowHtml({
-    title: attraction.title,
-    badgeLabel: "한국관광공사 제공",
-    badgeClass: "map-info-window__badge--api",
-    address: attraction.address || "",
-    review: "",
-    imageUrl: attraction.imageUrl,
-  });
+  const infoContent = buildPublicInfoWindowHtml(attraction);
 
   const infowindow = new kakao.maps.InfoWindow({
     content: infoContent,
@@ -335,12 +330,16 @@ function addPublicMarker(attraction, nodraw = false) {
     disableAutoPan: true,
   });
 
-  kakao.maps.event.addListener(marker, "click", async () => {
-    await ensurePublicAttractionPosition(attraction, true);
+  kakao.maps.event.addListener(marker, "click", () => {
     const targetPosition = marker.getPosition();
     openInfoWindowWithBounds(infowindow, marker, targetPosition);
     showMarkerFocus(targetPosition, "#f97316");
     selectPublicAttraction(attraction.contentId, { pan: false, openInfo: false, scroll: true });
+  });
+  kakao.maps.event.addListener(marker, "dragend", () => {
+    if (editingPublicCoordinateId === attraction.contentId) {
+      showMarkerFocus(marker.getPosition(), "#f97316");
+    }
   });
   publicMarkerMap.set(attraction.contentId, { marker, infowindow });
 
@@ -406,6 +405,27 @@ function buildMapInfoWindowHtml({ title, badgeLabel, badgeClass, address, review
     "</div>" +
     "</div>"
   );
+}
+
+function buildPublicInfoWindowHtml(attraction) {
+  const isEditing = editingPublicCoordinateId === attraction.contentId;
+  const actionHtml = isEditing
+    ? '<div class="map-info-window__actions">' +
+      '<button type="button" class="map-info-window__action-btn map-info-window__action-btn--primary" onclick="savePublicCoordinateEdit(\'' + String(attraction.contentId) + '\')">좌표 저장</button>' +
+      '<button type="button" class="map-info-window__action-btn" onclick="cancelPublicCoordinateEdit(\'' + String(attraction.contentId) + '\')">취소</button>' +
+      '</div>'
+    : '<div class="map-info-window__actions">' +
+      '<button type="button" class="map-info-window__action-btn" onclick="startPublicCoordinateEdit(\'' + String(attraction.contentId) + '\')">좌표 위치 수정</button>' +
+      '</div>';
+
+  return buildMapInfoWindowHtml({
+    title: attraction.title,
+    badgeLabel: "한국관광공사 제공",
+    badgeClass: "map-info-window__badge--api",
+    address: attraction.address || "",
+    review: "",
+    imageUrl: attraction.imageUrl,
+  }).replace(/<\/div>\s*$/, actionHtml + "</div>");
 }
 
 function extractSearchArea(address) {
@@ -822,13 +842,12 @@ function renderPublicPreview(attraction) {
   `;
 }
 
-async function focusSavedMarker(id) {
+function focusSavedMarker(id) {
   const place = placeList.find((item) => item.id === id);
   if (!map || !place) {
     return;
   }
 
-  await ensureSavedPlacePosition(place, true);
   if (!place.latitude || !place.longitude) {
     return;
   }
@@ -869,13 +888,11 @@ async function ensureSavedPlacePosition(place, forceRefresh = false) {
   }
 }
 
-async function focusPublicAttraction(contentId) {
+function focusPublicAttraction(contentId) {
   const attraction = publicAttractions.find((item) => String(item.contentId) === String(contentId));
   if (!map || !attraction) {
     return;
   }
-
-  await ensurePublicAttractionPosition(attraction, true);
 
   let target = null;
   const entry = publicMarkerMap.get(attraction.contentId);
@@ -991,6 +1008,101 @@ function selectPublicAttraction(contentId, options = {}) {
     item?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 }
+
+function refreshPublicInfoWindow(contentId) {
+  const attraction = publicAttractions.find((item) => String(item.contentId) === String(contentId));
+  const entry = publicMarkerMap.get(contentId);
+  if (!attraction || !entry) {
+    return;
+  }
+  entry.infowindow.setContent(buildPublicInfoWindowHtml(attraction));
+}
+
+function startPublicCoordinateEdit(contentId) {
+  const attraction = publicAttractions.find((item) => String(item.contentId) === String(contentId));
+  const entry = publicMarkerMap.get(contentId);
+  if (!attraction || !entry) {
+    return;
+  }
+
+  if (editingPublicCoordinateId && editingPublicCoordinateId !== contentId) {
+    cancelPublicCoordinateEdit(editingPublicCoordinateId);
+  }
+
+  const current = entry.marker.getPosition();
+  editingPublicCoordinateId = contentId;
+  editingPublicCoordinateOriginal = {
+    lat: current.getLat(),
+    lng: current.getLng(),
+  };
+  entry.marker.setDraggable(true);
+  refreshPublicInfoWindow(contentId);
+  openInfoWindowWithBounds(entry.infowindow, entry.marker, current);
+  showToast("마커를 드래그한 뒤 좌표 저장을 눌러주세요.", "success");
+}
+
+async function savePublicCoordinateEdit(contentId) {
+  const attraction = publicAttractions.find((item) => String(item.contentId) === String(contentId));
+  const entry = publicMarkerMap.get(contentId);
+  if (!attraction || !entry) {
+    return;
+  }
+
+  const position = entry.marker.getPosition();
+  const latitude = position.getLat();
+  const longitude = position.getLng();
+
+  try {
+    const response = await fetch(`/api/tourism/attractions/${encodeURIComponent(contentId)}/coordinates`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        [CSRF_HEADER]: getCsrfToken(),
+      },
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        reason: "관리자 좌표 수동 수정",
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "좌표를 저장하지 못했습니다.");
+    }
+
+    attraction.latitude = data.latitude;
+    attraction.longitude = data.longitude;
+    editingPublicCoordinateId = null;
+    editingPublicCoordinateOriginal = null;
+    entry.marker.setDraggable(false);
+    refreshPublicInfoWindow(contentId);
+    openInfoWindowWithBounds(entry.infowindow, entry.marker, entry.marker.getPosition());
+    showToast("좌표가 저장되었습니다.", "success");
+  } catch (error) {
+    showToast(error.message || "좌표를 저장하지 못했습니다.");
+  }
+}
+
+function cancelPublicCoordinateEdit(contentId) {
+  const entry = publicMarkerMap.get(contentId);
+  if (!entry) {
+    return;
+  }
+
+  if (editingPublicCoordinateId === contentId && editingPublicCoordinateOriginal) {
+    entry.marker.setPosition(new kakao.maps.LatLng(editingPublicCoordinateOriginal.lat, editingPublicCoordinateOriginal.lng));
+  }
+
+  entry.marker.setDraggable(false);
+  editingPublicCoordinateId = null;
+  editingPublicCoordinateOriginal = null;
+  refreshPublicInfoWindow(contentId);
+  openInfoWindowWithBounds(entry.infowindow, entry.marker, entry.marker.getPosition());
+}
+
+window.startPublicCoordinateEdit = startPublicCoordinateEdit;
+window.savePublicCoordinateEdit = savePublicCoordinateEdit;
+window.cancelPublicCoordinateEdit = cancelPublicCoordinateEdit;
 
 async function ensurePublicAttractionPosition(attraction, forceRefresh = false) {
   if (!attraction || !attraction.address || !geocoder || (!forceRefresh && attraction.positionVerified)) {
