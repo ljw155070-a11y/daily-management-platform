@@ -81,6 +81,7 @@
 .map-info-window__badge--api {
     background: #ffedd5;
     color: #c2410c;
+    white-space: nowrap;
 }
 
 .map-info-window__address-row {

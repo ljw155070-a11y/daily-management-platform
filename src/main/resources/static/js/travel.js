@@ -24,6 +24,7 @@ let publicListObserver = null;
 const markerMap = new Map();
 const publicMarkerMap = new Map();
 let selectedMarkerOverlay = null;
+let activeInfoWindow = null;
 
 let selectedPublicAttractionId = null;
 let mapRegisterOverlay = null;
@@ -321,7 +322,7 @@ function addPublicMarker(attraction, nodraw = false) {
   const marker = new kakao.maps.Marker({ position, image: markerImage });
   const infoContent = buildMapInfoWindowHtml({
     title: attraction.title,
-    badgeLabel: "API",
+    badgeLabel: "한국관광공사 제공",
     badgeClass: "map-info-window__badge--api",
     address: attraction.address || "",
     review: "",
@@ -920,7 +921,11 @@ function showMarkerFocus(position, color) {
 }
 
 function openInfoWindowWithBounds(infowindow, marker, position) {
+  if (activeInfoWindow && activeInfoWindow !== infowindow) {
+    activeInfoWindow.close();
+  }
   infowindow.open(map, marker);
+  activeInfoWindow = infowindow;
   window.requestAnimationFrame(() => keepInfoWindowInBounds(position));
 }
 
