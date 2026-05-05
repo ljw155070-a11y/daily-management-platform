@@ -11,6 +11,14 @@
     <div class="map-wrapper">
         <div id="map"></div>
         <div class="map-stats-card">
+            <div class="stat-item stat-item--level">
+                <span class="stat-value stat-level-lv" id="stat-level-lv">Lv.1</span>
+                <span class="stat-label stat-level-title" id="stat-level-title">동네 산책자</span>
+                <div class="stat-level-bar-wrap">
+                    <div class="stat-level-bar" id="stat-level-bar" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="stat-sep"></div>
             <div class="stat-item">
                 <span class="stat-value" id="stat-provinces">0<small>/17</small></span>
                 <span class="stat-label" id="stat-provinces-label">방문 시도</span>
@@ -86,18 +94,20 @@
 
     <aside class="travel-panel">
         <div class="panel-public">
-            <div class="public-header">
+<div class="public-header">
                 <div>
                     <p class="public-title">공공 여행지</p>
-                    <p class="public-desc">한국관광공사 공공 API에서 전국 관광지를 불러옵니다.</p>
+                    <p class="public-desc">지도에서 지역을 클릭하면 해당 지역의 여행지를 불러옵니다.</p>
                 </div>
-                <button type="button" id="btn-load-public" class="btn-public-load" th:disabled="${!tourApiEnabled}">
-                    <span th:text="${tourApiEnabled} ? '불러오기' : 'API 키 필요'">불러오기</span>
-                </button>
+                <div class="public-actions">
+                    <button type="button" id="btn-sync-public" class="btn-public-sync" th:disabled="${!tourApiEnabled}">
+                        <span th:text="${tourApiEnabled} ? '지금 동기화' : 'API 키 필요'">지금 동기화</span>
+                    </button>
+                </div>
             </div>
             <p id="public-status" class="public-status"
-               th:text="${tourApiEnabled} ? 'TourAPI가 준비되었습니다. 버튼을 눌러 여행지를 불러오세요.' : 'application.properties에 tourapi.service-key를 추가하면 이 기능을 사용할 수 있습니다.'">
-                TourAPI가 준비되었습니다. 버튼을 눌러 여행지를 불러오세요.
+               th:text="${tourApiEnabled} ? '지도에서 지역을 클릭하면 여행지를 불러옵니다.' : 'application.properties에 tourapi.service-key를 추가하면 이 기능을 사용할 수 있습니다.'">
+                지도에서 지역을 클릭하면 여행지를 불러옵니다.
             </p>
             <div id="public-preview" class="public-preview"></div>
             <div id="public-list" class="public-list"></div>
@@ -153,8 +163,11 @@
         publicReady: '공공 여행지를 불러왔습니다. 카드를 누르면 지도에서 확인할 수 있습니다.',
         publicEmpty: 'API에서 불러온 공공 여행지가 없습니다.',
         publicFailed: '공공 여행지를 불러오지 못했습니다.',
-        publicButton: '불러오기',
+        publicButton: '다시 불러오기',
         publicButtonReload: '다시 불러오기',
+        publicSyncButton: '지금 동기화',
+        publicSyncing: '동기화 중...',
+        publicSyncDone: '공공 여행지 동기화가 완료되었습니다.',
         publicApiMissing: 'application.properties에 tourapi.service-key를 추가하면 이 기능을 사용할 수 있습니다.',
         publicNoAddress: '주소 정보 없음',
         provinceNoSaved: '이 지역에는 아직 저장한 장소가 없습니다.',
@@ -173,7 +186,7 @@
     <script th:src="${'//dapi.kakao.com/v2/maps/sdk.js?appkey=' + kakaoApiKey + '&libraries=services,clusterer'}"></script>
 </th:block>
 
-<script th:src="@{/js/travel.js(v=11)}"></script>
+<script th:src="@{/js/travel.js(v=25)}"></script>
 
 </body>
 </html>

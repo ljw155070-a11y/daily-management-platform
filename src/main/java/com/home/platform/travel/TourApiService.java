@@ -15,39 +15,63 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TourApiService {
+
+    private static final int TOUR_API_PAGE_SIZE = 100;
+    private static final int TOUR_API_MAX_PAGES = 100;
+    private static final int MAX_RETRIES_ON_429 = 4;
+    private static final long REQUEST_DELAY_MS = 180L;
+    private static final long RETRY_BASE_DELAY_MS = 1_200L;
 
     private static final List<String> AREA_CODES = List.of(
             "1", "2", "3", "4", "5", "6", "7", "8",
             "31", "32", "33", "34", "35", "36", "37", "38", "39"
     );
+
     private static final Duration CACHE_TTL = Duration.ofHours(6);
 
-    private static final java.util.Map<String, String> PROVINCE_TO_AREA_CODE =
-            java.util.Map.ofEntries(
-                java.util.Map.entry("서울특별시", "1"),
-                java.util.Map.entry("인천광역시", "2"),
-                java.util.Map.entry("대전광역시", "3"),
-                java.util.Map.entry("대구광역시", "4"),
-                java.util.Map.entry("광주광역시", "5"),
-                java.util.Map.entry("부산광역시", "6"),
-                java.util.Map.entry("울산광역시", "7"),
-                java.util.Map.entry("세종특별자치시", "8"),
-                java.util.Map.entry("경기도", "31"),
-                java.util.Map.entry("강원특별자치도", "32"),
-                java.util.Map.entry("강원도", "32"),
-                java.util.Map.entry("충청북도", "33"),
-                java.util.Map.entry("충청남도", "34"),
-                java.util.Map.entry("전북특별자치도", "35"),
-                java.util.Map.entry("전라북도", "35"),
-                java.util.Map.entry("전라남도", "36"),
-                java.util.Map.entry("경상북도", "37"),
-                java.util.Map.entry("경상남도", "38"),
-                java.util.Map.entry("제주특별자치도", "39"),
-                java.util.Map.entry("제주도", "39")
-            );
+    private static final Map<String, String> PROVINCE_TO_AREA_CODE = Map.ofEntries(
+            Map.entry("서울특별시", "1"),
+            Map.entry("서울", "1"),
+            Map.entry("인천광역시", "2"),
+            Map.entry("인천", "2"),
+            Map.entry("대전광역시", "3"),
+            Map.entry("대전", "3"),
+            Map.entry("대구광역시", "4"),
+            Map.entry("대구", "4"),
+            Map.entry("광주광역시", "5"),
+            Map.entry("광주", "5"),
+            Map.entry("부산광역시", "6"),
+            Map.entry("부산", "6"),
+            Map.entry("울산광역시", "7"),
+            Map.entry("울산", "7"),
+            Map.entry("세종특별자치시", "8"),
+            Map.entry("세종", "8"),
+            Map.entry("경기도", "31"),
+            Map.entry("경기", "31"),
+            Map.entry("강원특별자치도", "32"),
+            Map.entry("강원도", "32"),
+            Map.entry("강원", "32"),
+            Map.entry("충청북도", "33"),
+            Map.entry("충북", "33"),
+            Map.entry("충청남도", "34"),
+            Map.entry("충남", "34"),
+            Map.entry("경상북도", "35"),  // TourAPI 실제 코드: 35=경북
+            Map.entry("경북", "35"),
+            Map.entry("경상남도", "36"),  // TourAPI 실제 코드: 36=경남
+            Map.entry("경남", "36"),
+            Map.entry("전북특별자치도", "37"),  // TourAPI 실제 코드: 37=전북
+            Map.entry("전라북도", "37"),
+            Map.entry("전북", "37"),
+            Map.entry("전라남도", "38"),  // TourAPI 실제 코드: 38=전남
+            Map.entry("전남", "38"),
+            Map.entry("제주특별자치도", "39"),
+            Map.entry("제주도", "39"),
+            Map.entry("제주", "39")
+    );
 
     @Value("${tourapi.service-key:}")
     private String serviceKey;
@@ -68,8 +92,7 @@ public class TourApiService {
         if (!isEnabled()) {
             throw new IllegalStateException("TourAPI service key is not configured.");
         }
-        String key = provinceName.contains(" ") ? provinceName.split(" ")[0] : provinceName;
-        String areaCode = PROVINCE_TO_AREA_CODE.get(key);
+        String areaCode = getAreaCodeForProvince(provinceName);
         if (areaCode == null) {
             return List.of();
         }
@@ -88,6 +111,7 @@ public class TourApiService {
         List<TourApiAttractionDto> attractions = new ArrayList<>();
         for (String areaCode : AREA_CODES) {
             attractions.addAll(fetchAreaAttractions(areaCode));
+            sleepQuietly(REQUEST_DELAY_MS);
         }
 
         cachedAttractions = attractions;
@@ -95,11 +119,65 @@ public class TourApiService {
         return cachedAttractions;
     }
 
+    public static String getAreaCodeForProvince(String provinceName) {
+        return PROVINCE_TO_AREA_CODE.get(normalizeProvinceName(provinceName));
+    }
+
+    public static String normalizeProvinceName(String provinceName) {
+        String key = provinceName == null ? "" : provinceName.trim();
+        if (key.contains(" ")) {
+            key = key.substring(0, key.indexOf(' '));
+        }
+        return key;
+    }
+
     private List<TourApiAttractionDto> fetchAreaAttractions(String areaCode) throws Exception {
+        List<TourApiAttractionDto> result = new ArrayList<>();
+        int totalCount = Integer.MAX_VALUE;
+
+        for (int pageNo = 1; pageNo <= TOUR_API_MAX_PAGES; pageNo++) {
+            JsonNode bodyNode = requestAreaPage(areaCode, pageNo);
+            if (totalCount == Integer.MAX_VALUE) {
+                totalCount = bodyNode.path("totalCount").asInt(0);
+            }
+
+            JsonNode itemsNode = bodyNode.path("items").path("item");
+            if (itemsNode.isMissingNode() || itemsNode.isNull()) {
+                break;
+            }
+
+            int addedOnThisPage = 0;
+            if (itemsNode.isArray()) {
+                for (JsonNode item : itemsNode) {
+                    TourApiAttractionDto dto = toDto(item);
+                    if (dto != null) {
+                        result.add(dto);
+                        addedOnThisPage++;
+                    }
+                }
+            } else {
+                TourApiAttractionDto dto = toDto(itemsNode);
+                if (dto != null) {
+                    result.add(dto);
+                    addedOnThisPage++;
+                }
+            }
+
+            if (addedOnThisPage == 0 || result.size() >= totalCount) {
+                break;
+            }
+
+            sleepQuietly(REQUEST_DELAY_MS);
+        }
+
+        return result;
+    }
+
+    private JsonNode requestAreaPage(String areaCode, int pageNo) throws Exception {
         String url = "https://apis.data.go.kr/B551011/KorService2/areaBasedList2"
                 + "?serviceKey=" + serviceKey
-                + "&numOfRows=12"
-                + "&pageNo=1"
+                + "&numOfRows=" + TOUR_API_PAGE_SIZE
+                + "&pageNo=" + pageNo
                 + "&MobileOS=ETC"
                 + "&MobileApp=DailyHub"
                 + "&_type=json"
@@ -109,38 +187,28 @@ public class TourApiService {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(20))
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("TourAPI request failed: HTTP " + response.statusCode());
-        }
+        for (int attempt = 0; attempt <= MAX_RETRIES_ON_429; attempt++) {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            int statusCode = response.statusCode();
 
-        JsonNode root = objectMapper.readTree(response.body());
-        JsonNode itemsNode = root.path("response").path("body").path("items").path("item");
-        List<TourApiAttractionDto> result = new ArrayList<>();
-
-        if (itemsNode.isMissingNode() || itemsNode.isNull()) {
-            return result;
-        }
-
-        if (itemsNode.isArray()) {
-            for (JsonNode item : itemsNode) {
-                TourApiAttractionDto dto = toDto(item);
-                if (dto != null) {
-                    result.add(dto);
-                }
+            if (statusCode >= 200 && statusCode < 300) {
+                JsonNode root = objectMapper.readTree(response.body());
+                return root.path("response").path("body");
             }
-            return result;
+
+            if (statusCode == 429 && attempt < MAX_RETRIES_ON_429) {
+                sleepQuietly(RETRY_BASE_DELAY_MS * (attempt + 1L));
+                continue;
+            }
+
+            throw new IllegalStateException("TourAPI request failed: HTTP " + statusCode);
         }
 
-        TourApiAttractionDto dto = toDto(itemsNode);
-        if (dto != null) {
-            result.add(dto);
-        }
-        return result;
+        throw new IllegalStateException("TourAPI request failed: retry exhausted");
     }
 
     private TourApiAttractionDto toDto(JsonNode item) {
@@ -194,5 +262,14 @@ public class TourApiService {
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private void sleepQuietly(long delayMillis) {
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("TourAPI sync interrupted.", exception);
+        }
     }
 }

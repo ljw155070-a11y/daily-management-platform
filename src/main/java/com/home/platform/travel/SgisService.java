@@ -23,6 +23,8 @@ import java.time.Instant;
 @Service
 public class SgisService {
 
+    public record GeoPoint(double lat, double lng) {}
+
     @Value("${sgis.consumer-key}")
     private String consumerKey;
 
@@ -107,6 +109,41 @@ public class SgisService {
         cachedToken = root.path("result").path("accessToken").asText();
         tokenExpiry = Instant.now().plusSeconds(3500);
         return cachedToken;
+    }
+
+    public GeoPoint geocodeAddressWgs84(String address) throws Exception {
+        if (address == null || address.isBlank()) {
+            return null;
+        }
+
+        String token = getAccessToken();
+        String url = "https://sgisapi.mods.go.kr/OpenAPI3/addr/geocodewgs84.json"
+                + "?accessToken=" + token
+                + "&address=" + java.net.URLEncoder.encode(address, java.nio.charset.StandardCharsets.UTF_8)
+                + "&pagenum=0&resultcount=1";
+
+        HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url))
+                .timeout(Duration.ofSeconds(15)).GET().build();
+        HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+
+        JsonNode root = objectMapper.readTree(res.body());
+        if (root.path("errCd").asInt() != 0) {
+            return null;
+        }
+
+        JsonNode resultData = root.path("result").path("resultdata");
+        if (!resultData.isArray() || resultData.isEmpty()) {
+            return null;
+        }
+
+        JsonNode first = resultData.get(0);
+        String y = first.path("y").asText("").trim();
+        String x = first.path("x").asText("").trim();
+        if (x.isEmpty() || y.isEmpty()) {
+            return null;
+        }
+
+        return new GeoPoint(Double.parseDouble(y), Double.parseDouble(x));
     }
 
     public String getProvinceBoundariesAsGeoJson() throws Exception {
