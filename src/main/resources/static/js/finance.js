@@ -14,6 +14,7 @@ const els = {
   summaryFixedExpense: document.getElementById("summary-fixed-expense"),
   summaryVariableExpense: document.getElementById("summary-variable-expense"),
   summaryBalance: document.getElementById("summary-balance"),
+  insight: document.getElementById("finance-insight"),
   chartList: document.getElementById("category-chart-list"),
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
@@ -61,6 +62,7 @@ function renderAll() {
   renderCategoryChart();
   renderBudgetBars();
   renderCalendar();
+  renderInsight();
   renderHistory();
 }
 
@@ -195,6 +197,32 @@ function renderCalendar() {
   calendarGrid.innerHTML = html.join("");
 }
 
+function renderInsight() {
+  if (!els.insight) return;
+
+  const items = Array.isArray(summaryState.expenseByCategory) ? summaryState.expenseByCategory : [];
+  if (items.length === 0) {
+    els.insight.style.display = "none";
+    els.insight.textContent = "";
+    return;
+  }
+
+  const topCategory = items.reduce((max, item) => {
+    if (!max) return item;
+    return toNumber(item.amount) > toNumber(max.amount) ? item : max;
+  }, null);
+
+  if (!topCategory || toNumber(topCategory.amount) <= 0) {
+    els.insight.style.display = "none";
+    els.insight.textContent = "";
+    return;
+  }
+
+  const icon = topCategory.icon ? `${topCategory.icon} ` : "";
+  const name = topCategory.categoryName || TEXT.formCategory;
+  els.insight.style.display = "block";
+  els.insight.textContent = `${TEXT.insightTopCategory} ${icon}${name} (${formatAmount(topCategory.amount)}) 입니다`;
+}
 function renderHistory() {
   if (!els.historyList) return;
 

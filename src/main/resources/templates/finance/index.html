@@ -52,6 +52,7 @@
                 <strong id="summary-balance" class="summary-value" th:text="|₩${#numbers.formatInteger(summary.balance, 0, 'COMMA')}|">₩0</strong>
             </article>
         </div>
+        <div id="finance-insight" class="finance-insight"></div>
 
         <div class="dashboard-tab-bar" role="tablist" aria-label="dashboard tabs">
             <button type="button" class="dashboard-tab active" data-tab="chart">지출 분석</button>
@@ -312,6 +313,7 @@
         budgetRemaining: /*[[#{finance.budget.remaining}]]*/ 'Remaining',
         chartTitle: /*[[#{finance.chart.title}]]*/ 'Spending by category',
         comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
+        insightTopCategory: /*[[#{finance.insight.topCategory}]]*/ 'Top spending category this month:',
         monthPrev: /*[[#{finance.month.prev}]]*/ 'Previous',
         monthNext: /*[[#{finance.month.next}]]*/ 'Next',
         unit: /*[[#{finance.unit}]]*/ 'KRW',
