@@ -166,24 +166,6 @@ function renderCalendar() {
   const totalDays = new Date(CURRENT_YEAR, CURRENT_MONTH, 0).getDate();
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === CURRENT_YEAR && today.getMonth() === CURRENT_MONTH - 1;
-  const dailyIncome = {};
-  const dailyExpense = {};
-
-  txList.forEach((t) => {
-    if (!t.txDate) return;
-    const parts = String(t.txDate).split("-");
-    if (parts.length !== 3) return;
-    const txYear = Number(parts[0]);
-    const txMonth = Number(parts[1]);
-    const day = Number(parts[2]);
-    const amt = Number(t.amount || 0);
-    if (txYear !== CURRENT_YEAR || txMonth !== CURRENT_MONTH || !Number.isFinite(day)) return;
-    if (t.txType === "INCOME") {
-      dailyIncome[day] = (dailyIncome[day] || 0) + amt;
-    } else {
-      dailyExpense[day] = (dailyExpense[day] || 0) + amt;
-    }
-  });
 
   const html = [];
   headers.forEach((label) => {
@@ -196,8 +178,14 @@ function renderCalendar() {
 
   for (let day = 1; day <= totalDays; day += 1) {
     const weekday = (firstWeekday + day - 1) % 7;
-    const incomeAmt = dailyIncome[day] || 0;
-    const expenseAmt = dailyExpense[day] || 0;
+    const dayTransactions = getTransactionsByDay(day);
+    const incomeSum = dayTransactions
+      .filter((tx) => tx.txType === "INCOME")
+      .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+    const expenseSum = dayTransactions
+      .filter((tx) => tx.txType === "EXPENSE")
+      .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+    const dayTotal = incomeSum - expenseSum;
     const cellClasses = ["calendar-cell"];
     const dayClasses = ["calendar-day"];
 
@@ -213,8 +201,14 @@ function renderCalendar() {
     html.push(`
       <div class="${cellClasses.join(" ")}" data-day="${day}">
         <div class="${dayClasses.join(" ")}">${day}</div>
-        ${incomeAmt > 0 ? `<div class="calendar-income">+${escHtml(formatCompact(incomeAmt))}</div>` : ""}
-        ${expenseAmt > 0 ? `<div class="calendar-expense">-${escHtml(formatCompact(expenseAmt))}</div>` : ""}
+        <div class="calendar-events">
+          ${dayTransactions.slice(0, 3).map((tx) => `
+            <div class="cal-event ${tx.txType === "INCOME" ? "cal-income" : "cal-expense"}">
+              ${escHtml(tx.categoryName || TEXT.formCategory)} ${tx.txType === "INCOME" ? "+" : "-"}${escHtml(formatCompact(tx.amount))}
+            </div>`).join("")}
+          ${dayTransactions.length > 3 ? `<div class="cal-more">+${dayTransactions.length - 3}건</div>` : ""}
+        </div>
+        ${dayTotal !== 0 ? `<div class="calendar-total ${dayTotal > 0 ? "positive" : "negative"}">${escHtml(formatCompact(Math.abs(dayTotal)))}</div>` : ""}
       </div>`);
   }
 
@@ -222,8 +216,8 @@ function renderCalendar() {
 }
 
 function handleCalendarClick(event) {
-  const cell = event.target.closest(".calendar-cell");
-  if (!cell || cell.classList.contains("empty")) return;
+  const cell = event.target.closest(".calendar-cell:not(.empty)");
+  if (!cell) return;
 
   const day = Number(cell.dataset.day);
   if (!Number.isFinite(day)) return;
@@ -235,7 +229,6 @@ function handleCalendarClick(event) {
     return;
   }
 
-  selectedCalendarDay = day;
   showDayDetail(day);
 }
 
@@ -253,24 +246,46 @@ function renderCalendarDayDetail() {
     return;
   }
 
-  const items = txList
-    .filter((tx) => matchesCurrentMonthDay(tx, selectedCalendarDay))
-    .sort((a, b) => compareTransactions(b, a));
+  const items = getTransactionsByDay(selectedCalendarDay);
+  const incomeSum = items
+    .filter((tx) => tx.txType === "INCOME")
+    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+  const expenseSum = items
+    .filter((tx) => tx.txType === "EXPENSE")
+    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+  const balance = incomeSum - expenseSum;
 
-  const title = formatCalendarDayDetailTitle(CURRENT_MONTH, selectedCalendarDay);
-  const body = items.length > 0
+  const listHtml = items.length > 0
     ? items.map((tx) => `
         <div class="day-detail-item">
-          <div class="transaction-title-row">
-            <span class="cat-icon">${escHtml(tx.categoryIcon || "•")}</span>
-            <span>${escHtml(tx.categoryName || TEXT.formCategory)}</span>
+          <div class="day-detail-left">
+            <span class="day-detail-icon">${escHtml(tx.categoryIcon || "•")}</span>
+            <div>
+              <span class="day-detail-name">${escHtml(tx.categoryName || TEXT.formCategory)}</span>
+              ${tx.description ? `<span class="day-detail-memo">${escHtml(tx.description)}</span>` : ""}
+            </div>
           </div>
-          <strong class="transaction-amount ${tx.txType === "INCOME" ? "income" : "expense"}">${formatTxAmount(tx.amount, tx.txType)}</strong>
+          <span class="day-detail-amount ${tx.txType === "INCOME" ? "income" : "expense"}">${formatTxAmount(tx.amount, tx.txType)}</span>
         </div>`).join("")
-    : `<div class="day-detail-item">${escHtml(TEXT.calendarNoTransaction)}</div>`;
+    : `<div class="day-detail-empty">${escHtml(TEXT.calendarNoTransaction)}</div>`;
 
-  els.calendarDayDetail.innerHTML = `<h4>${escHtml(title)}</h4>${body}`;
+  els.calendarDayDetail.innerHTML = `
+    <div class="day-detail-header">
+      <h4>${CURRENT_MONTH}월 ${selectedCalendarDay}일</h4>
+      <div class="day-detail-summary">
+        <span class="day-income">${escHtml(TEXT.summaryIncome)} +${formatAmount(incomeSum)}</span>
+        <span class="day-expense">${escHtml(TEXT.summaryExpense)} -${formatAmount(expenseSum)}</span>
+        <span class="day-balance">합계 ${formatSignedAmount(balance)}</span>
+      </div>
+    </div>
+    <div class="day-detail-list">${listHtml}</div>`;
   els.calendarDayDetail.style.display = "block";
+}
+
+function getTransactionsByDay(day) {
+  return txList
+    .filter((tx) => matchesCurrentMonthDay(tx, day))
+    .sort((a, b) => compareTransactions(b, a));
 }
 
 function matchesCurrentMonthDay(tx, day) {
@@ -280,18 +295,6 @@ function matchesCurrentMonthDay(tx, day) {
   return Number(parts[0]) === CURRENT_YEAR
     && Number(parts[1]) === CURRENT_MONTH
     && Number(parts[2]) === day;
-}
-
-function formatCalendarDayDetailTitle(month, day) {
-  if (String(TEXT.pageTitle || "").includes("가계")) {
-    return `${month}월 ${day}일 거래내역`;
-  }
-
-  return String(TEXT.calendarDayDetail || "Transactions on {0}/{1}")
-    .replace("{0}", String(month))
-    .replace("{1}", String(day))
-    .replace("{month}", String(month))
-    .replace("{day}", String(day));
 }
 
 function renderInsight() {
