@@ -227,30 +227,34 @@
 
 .dashboard-tab-bar {
     display: flex;
-    gap: 4px;
-    background: #f3f4f6;
-    padding: 3px;
-    border-radius: 10px;
-    margin-bottom: 14px;
+    gap: 0;
+    background: none;
+    padding: 0;
+    border-bottom: 1px solid #e8eaed;
+    margin-bottom: 16px;
+    border-radius: 0;
 }
 
 .dashboard-tab {
-    flex: 1;
-    padding: 8px;
+    flex: none;
+    padding: 10px 20px;
     border: none;
     background: transparent;
-    border-radius: 8px;
-    font-size: 0.82rem;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    font-size: 0.84rem;
     font-weight: 500;
     color: #8b919a;
     cursor: pointer;
+    transition: all 0.15s;
 }
 
 .dashboard-tab.active {
-    background: #fff;
     color: #1b1d21;
+    border-bottom-color: #1b1d21;
     font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    background: transparent;
+    box-shadow: none;
 }
 
 .dashboard-panel {
@@ -1161,3 +1165,13 @@ textarea.form-input {
 .compare-balance { text-align: right; font-size: 0.82rem; font-weight: 600; color: #3b6fd4; margin-top: 4px; }
 .category-section-block { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .chart-bar-fill.income { background: #2d9d5e; }
+
+.analysis-section {
+    padding-top: 14px;
+    border-top: 1px solid #f0f1f3;
+}
+
+.analysis-section:first-child {
+    padding-top: 0;
+    border-top: none;
+}

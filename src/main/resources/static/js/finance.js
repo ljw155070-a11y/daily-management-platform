@@ -100,7 +100,7 @@ function renderCategoryChart() {
     const icon = item.icon || "•";
     const percentage = clampPercentage(item.percentage);
     return `
-      <div class="category-chart-item chart-bar">
+      <div class="category-chart-item chart-bar analysis-section">
         <div class="category-chart-top">
           <div class="category-meta">
             <span class="category-icon">${escHtml(icon)}</span>
@@ -135,7 +135,7 @@ function renderBudgetBars() {
       : `width:${usage}%;`;
     const name = budget.categoryName || TEXT.budgetTitle;
     return `
-      <div class="budget-item">
+      <div class="budget-item analysis-section">
         <div class="budget-item-top">
           <div>
             <p class="budget-name">${escHtml(name)}</p>
