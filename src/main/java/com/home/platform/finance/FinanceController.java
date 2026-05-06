@@ -7,6 +7,8 @@ import com.home.platform.finance.dto.FinanceCategoryOrderRequest;
 import com.home.platform.finance.dto.FinanceMonthlySummaryDto;
 import com.home.platform.finance.dto.FinanceTxDto;
 import com.home.platform.finance.dto.FinanceTxSaveRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -29,15 +31,18 @@ public class FinanceController {
     private final FinanceCategoryService categoryService;
     private final FinanceTxService txService;
     private final FinanceBudgetService budgetService;
+    private final FinanceExcelService excelService;
 
     public FinanceController(
             FinanceCategoryService categoryService,
             FinanceTxService txService,
-            FinanceBudgetService budgetService
+            FinanceBudgetService budgetService,
+            FinanceExcelService excelService
     ) {
         this.categoryService = categoryService;
         this.txService = txService;
         this.budgetService = budgetService;
+        this.excelService = excelService;
     }
 
     @GetMapping("/finance")
@@ -69,6 +74,19 @@ public class FinanceController {
         return "finance/index";
     }
 
+
+    @GetMapping("/finance/export")
+    public ResponseEntity<byte[]> exportExcel(
+            Authentication auth,
+            @RequestParam Integer year,
+            @RequestParam Integer month
+    ) {
+        byte[] data = excelService.exportMonthlyTransactions(auth.getName(), year, month);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", "finance_" + year + "_" + String.format("%02d", month) + ".xlsx");
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
     @PostMapping("/finance/transactions")
     @ResponseBody
     public ResponseEntity<FinanceTxDto> saveTransaction(

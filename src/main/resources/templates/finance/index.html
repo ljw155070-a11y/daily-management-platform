@@ -10,6 +10,7 @@
 <div class="finance-layout">
     <section class="finance-dashboard">
         <div class="finance-hero-card">
+            <a id="finance-export-btn" class="hero-export-btn" th:title="#{finance.export}" th:aria-label="#{finance.export}" th:href="@{/finance/export(year=${year}, month=${month})}">⬇</a>
             <button type="button" id="category-settings-btn" class="hero-settings-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}">⚙</button>
             <div>
                 <p class="finance-page-kicker" th:text="#{page.finance.title}">가계 관리</p>
