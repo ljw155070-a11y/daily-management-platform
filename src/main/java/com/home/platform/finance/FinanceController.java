@@ -60,6 +60,7 @@ public class FinanceController {
         }
 
         YearMonth yearMonth = resolveYearMonth(year, month);
+        txService.generateRecurringTransactions(userId, yearMonth.getYear(), yearMonth.getMonthValue());
         FinanceMonthlySummaryDto summary = txService.getMonthlySummary(userId, yearMonth.getYear(), yearMonth.getMonthValue());
         List<FinanceTxDto> transactions = txService.getTransactions(userId, yearMonth.getYear(), yearMonth.getMonthValue());
         List<FinanceBudgetDto> budgets = budgetService.getBudgets(userId, yearMonth.getYear(), yearMonth.getMonthValue());
@@ -130,6 +131,17 @@ public class FinanceController {
             @RequestBody FinanceBudgetSaveRequest req
     ) {
         return ResponseEntity.ok(budgetService.saveBudget(req, authentication.getName()));
+    }
+
+    @PostMapping("/finance/recurring/generate")
+    @ResponseBody
+    public ResponseEntity<Void> generateRecurring(
+            Authentication authentication,
+            @RequestParam Integer year,
+            @RequestParam Integer month
+    ) {
+        txService.generateRecurringTransactions(authentication.getName(), year, month);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/finance/budgets/{id}")

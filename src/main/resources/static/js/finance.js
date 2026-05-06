@@ -43,6 +43,8 @@ const els = {
   date: document.getElementById("finance-date"),
   fixedRow: document.getElementById("finance-fixed-row"),
   isFixed: document.getElementById("finance-is-fixed"),
+  recurringRow: document.getElementById("finance-recurring-row"),
+  isRecurring: document.getElementById("finance-is-recurring"),
   paymentMethod: document.getElementById("finance-payment-method"),
   description: document.getElementById("finance-description"),
   save: document.getElementById("finance-save"),
@@ -532,20 +534,24 @@ function renderHistory() {
     const note = tx.description || "";
     const amountClass = tx.txType === "INCOME" ? "income" : "expense";
     const isFixed = tx.txType === "EXPENSE" && tx.isFixed === "Y";
+    const isRecurring = tx.txType === "EXPENSE" && tx.isRecurring === "Y";
     return `
       <article class="transaction-item" data-id="${tx.id}">
         <div class="transaction-main">
           <div class="transaction-icon">${escHtml(icon)}</div>
           <div class="transaction-body">
             <div class="transaction-top-row">
-              <strong class="transaction-category">${escHtml(categoryName)}</strong>
+              <div class="transaction-title-row">
+                <strong class="transaction-category">${escHtml(categoryName)}</strong>
+                ${isFixed ? `<span class="badge-fixed">${escHtml(TEXT.fixedExpense)}</span>` : ""}
+                ${isRecurring ? `<span class="badge-recurring">${escHtml(TEXT.recurringLabel)}</span>` : ""}
+              </div>
               <span class="transaction-amount ${amountClass}">${formatTxAmount(tx.amount, tx.txType)}</span>
             </div>
             <div class="transaction-meta">
               <span>${escHtml(tx.txDate || "")}</span>
               <span>${escHtml(formatPaymentMethod(tx.paymentMethod))}</span>
               ${note ? `<span>${escHtml(note)}</span>` : ""}
-              ${isFixed ? `<span class="badge-fixed">${escHtml(TEXT.fixedExpense)}</span>` : ""}
             </div>
             <div class="transaction-actions-row">
               <button type="button" class="action-btn copy" data-action="copy" data-id="${tx.id}">${escHtml(TEXT.copyLabel)}</button>
@@ -574,6 +580,9 @@ function bindEvents() {
 
   els.category?.addEventListener("change", () => {
     syncCustomCategoryVisibility();
+  });
+  els.isFixed?.addEventListener("change", () => {
+    syncRecurringFieldVisibility();
   });
 
   els.save?.addEventListener("click", handleSubmit);
@@ -646,6 +655,7 @@ async function handleSubmit() {
       description: formData.description,
       paymentMethod: formData.paymentMethod,
       isFixed: formData.isFixed,
+      isRecurring: formData.isRecurring,
     };
 
     const response = await fetch(isEditing ? `/finance/transactions/${editingId}` : "/finance/transactions", {
@@ -739,13 +749,15 @@ function startEdit(id) {
   currentTxType = tx.txType || "EXPENSE";
   syncTypeButtons();
   populateCategoryOptions(currentTxType, tx.categoryId);
-  syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
 
   if (els.editId) els.editId.value = String(id);
   if (els.amount) els.amount.value = tx.amount ?? "";
   if (els.date) els.date.value = tx.txDate || "";
   if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
+  syncFixedFieldVisibility();
+  if (els.isRecurring) els.isRecurring.checked = tx.isRecurring === "Y";
+  syncRecurringFieldVisibility();
   if (els.paymentMethod) els.paymentMethod.value = tx.paymentMethod || "CASH";
   if (els.description) els.description.value = tx.description || "";
   if (els.formTitle) els.formTitle.textContent = TEXT.formEditTitle;
@@ -763,13 +775,15 @@ function copyTransaction(id) {
   currentTxType = tx.txType || "EXPENSE";
   syncTypeButtons();
   populateCategoryOptions(currentTxType, tx.categoryId);
-  syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
   hideCustomCategoryGroup();
 
   if (els.amount) els.amount.value = tx.amount ?? "";
   setTodayDate();
   if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
+  syncFixedFieldVisibility();
+  if (els.isRecurring) els.isRecurring.checked = tx.isRecurring === "Y";
+  syncRecurringFieldVisibility();
   if (els.paymentMethod) els.paymentMethod.value = tx.paymentMethod || "CASH";
   if (els.description) els.description.value = tx.description || "";
   if (els.formTitle) els.formTitle.textContent = TEXT.formTitle;
@@ -791,6 +805,8 @@ function resetForm() {
   setDefaultDate();
   if (els.paymentMethod) els.paymentMethod.value = "CASH";
   if (els.isFixed) els.isFixed.checked = false;
+  if (els.isRecurring) els.isRecurring.checked = false;
+  syncRecurringFieldVisibility();
   if (els.formTitle) els.formTitle.textContent = TEXT.formTitle;
   if (els.save) {
     els.save.textContent = TEXT.formSave;
@@ -1166,6 +1182,7 @@ function collectFormData() {
   const description = (els.description?.value || "").trim();
   const paymentMethod = els.paymentMethod?.value || "CASH";
   const isFixed = currentTxType === "EXPENSE" && els.isFixed?.checked ? "Y" : "N";
+  const isRecurring = currentTxType === "EXPENSE" && isFixed === "Y" && els.isRecurring?.checked ? "Y" : "N";
   const customCategoryName = isCustomCategorySelected() ? (els.customCategory?.value || "").trim() : "";
 
   if (!Number.isFinite(categoryId)) {
@@ -1181,7 +1198,7 @@ function collectFormData() {
     return null;
   }
 
-  return { txType: currentTxType, categoryId, amount, txDate, description, paymentMethod, isFixed, customCategoryName };
+  return { txType: currentTxType, categoryId, amount, txDate, description, paymentMethod, isFixed, isRecurring, customCategoryName };
 }
 
 function upsertTransaction(tx) {
@@ -1256,6 +1273,16 @@ function syncFixedFieldVisibility() {
   const visible = currentTxType === "EXPENSE";
   els.fixedRow.style.display = visible ? "block" : "none";
   if (!visible && els.isFixed) els.isFixed.checked = false;
+  syncRecurringFieldVisibility();
+}
+
+function syncRecurringFieldVisibility() {
+  if (!els.recurringRow) return;
+  const visible = currentTxType === "EXPENSE" && Boolean(els.isFixed?.checked);
+  els.recurringRow.style.display = visible ? "block" : "none";
+  if (!visible && els.isRecurring) {
+    els.isRecurring.checked = false;
+  }
 }
 
 function syncCustomCategoryVisibility() {

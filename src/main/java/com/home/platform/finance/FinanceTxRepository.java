@@ -13,6 +13,9 @@ public interface FinanceTxRepository extends JpaRepository<FinanceTx, Long> {
     List<FinanceTx> findByUserIdAndTxDateBetweenOrderByTxDateDescCreatedAtDesc(
             String userId, LocalDate startDate, LocalDate endDate);
 
+    List<FinanceTx> findByUserIdAndIsRecurringAndTxDateBetween(
+            String userId, String isRecurring, LocalDate startDate, LocalDate endDate);
+
     Optional<FinanceTx> findByIdAndUserId(Long id, String userId);
 
     long countByCategoryId(Long categoryId);

@@ -39,6 +39,9 @@ public class FinanceTx {
     @Column(name = "IS_FIXED", nullable = false, length = 1)
     private String isFixed = "N";
 
+    @Column(name = "IS_RECURRING", nullable = false, length = 1)
+    private String isRecurring = "N";
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -55,6 +58,9 @@ public class FinanceTx {
         if (this.isFixed == null || this.isFixed.isBlank()) {
             this.isFixed = "N";
         }
+        if (this.isRecurring == null || this.isRecurring.isBlank()) {
+            this.isRecurring = "N";
+        }
     }
 
     @PreUpdate
@@ -62,6 +68,9 @@ public class FinanceTx {
         this.updatedAt = LocalDateTime.now();
         if (this.isFixed == null || this.isFixed.isBlank()) {
             this.isFixed = "N";
+        }
+        if (this.isRecurring == null || this.isRecurring.isBlank()) {
+            this.isRecurring = "N";
         }
     }
 
@@ -91,6 +100,9 @@ public class FinanceTx {
 
     public String getIsFixed()                        { return isFixed; }
     public void setIsFixed(String isFixed)            { this.isFixed = isFixed; }
+
+    public String getIsRecurring()                    { return isRecurring; }
+    public void setIsRecurring(String isRecurring)    { this.isRecurring = isRecurring; }
 
     public LocalDateTime getCreatedAt()               { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

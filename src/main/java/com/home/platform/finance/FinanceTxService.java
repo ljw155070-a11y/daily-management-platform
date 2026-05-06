@@ -18,8 +18,10 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -67,6 +69,7 @@ public class FinanceTxService {
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
         tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
+        tx.setIsRecurring(normalizeIsRecurring(validatedRequest.isRecurring(), tx.getIsFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -87,6 +90,7 @@ public class FinanceTxService {
         tx.setDescription(normalizeDescription(validatedRequest.description()));
         tx.setPaymentMethod(normalizePaymentMethod(validatedRequest.paymentMethod()));
         tx.setIsFixed(normalizeIsFixed(validatedRequest.isFixed(), validatedRequest.txType()));
+        tx.setIsRecurring(normalizeIsRecurring(validatedRequest.isRecurring(), tx.getIsFixed(), validatedRequest.txType()));
 
         return toDto(txRepository.save(tx), category);
     }
@@ -95,6 +99,57 @@ public class FinanceTxService {
         FinanceTx tx = txRepository.findByIdAndUserId(normalizeId(id), normalizeUserId(userId))
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Transaction not found."));
         txRepository.delete(tx);
+    }
+
+    public void generateRecurringTransactions(String userId, Integer year, Integer month) {
+        String normalizedUserId = normalizeUserId(userId);
+        YearMonth targetMonth = normalizeYearMonth(year, month);
+        YearMonth previousMonth = targetMonth.minusMonths(1);
+        LocalDate previousStartDate = previousMonth.atDay(1);
+        LocalDate previousEndDate = previousMonth.atEndOfMonth();
+        LocalDate currentStartDate = targetMonth.atDay(1);
+        LocalDate currentEndDate = targetMonth.atEndOfMonth();
+
+        List<FinanceTx> recurringSource = txRepository.findByUserIdAndIsRecurringAndTxDateBetween(
+                normalizedUserId,
+                "Y",
+                previousStartDate,
+                previousEndDate
+        );
+        if (recurringSource.isEmpty()) {
+            return;
+        }
+
+        Set<String> existingKeys = new HashSet<>(txRepository
+                .findByUserIdAndTxDateBetweenOrderByTxDateDescCreatedAtDesc(normalizedUserId, currentStartDate, currentEndDate)
+                .stream()
+                .map(this::toRecurringDedupKey)
+                .toList());
+
+        List<FinanceTx> generated = new ArrayList<>();
+        for (FinanceTx source : recurringSource) {
+            String key = toRecurringDedupKey(source);
+            if (existingKeys.contains(key)) {
+                continue;
+            }
+
+            FinanceTx copy = new FinanceTx();
+            copy.setUserId(source.getUserId());
+            copy.setTxType(source.getTxType());
+            copy.setCategoryId(source.getCategoryId());
+            copy.setAmount(source.getAmount());
+            copy.setTxDate(targetMonth.atDay(Math.min(source.getTxDate().getDayOfMonth(), targetMonth.lengthOfMonth())));
+            copy.setDescription(source.getDescription());
+            copy.setPaymentMethod(source.getPaymentMethod());
+            copy.setIsFixed(source.getIsFixed());
+            copy.setIsRecurring("Y");
+            generated.add(copy);
+            existingKeys.add(key);
+        }
+
+        if (!generated.isEmpty()) {
+            txRepository.saveAll(generated);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -198,6 +253,7 @@ public class FinanceTxService {
                 tx.getDescription(),
                 tx.getPaymentMethod(),
                 tx.getIsFixed(),
+                tx.getIsRecurring(),
                 formatCreatedAt(tx.getCreatedAt())
         );
     }
@@ -264,6 +320,7 @@ public class FinanceTxService {
         String normalizedDescription = normalizeDescription(req.description());
         String normalizedPaymentMethod = normalizePaymentMethod(req.paymentMethod());
         String normalizedIsFixed = normalizeIsFixed(req.isFixed(), normalizedTxType);
+        String normalizedIsRecurring = normalizeIsRecurring(req.isRecurring(), normalizedIsFixed, normalizedTxType);
 
         return new FinanceTxSaveRequest(
                 normalizedTxType,
@@ -272,7 +329,8 @@ public class FinanceTxService {
                 normalizedTxDate,
                 normalizedDescription,
                 normalizedPaymentMethod,
-                normalizedIsFixed
+                normalizedIsFixed,
+                normalizedIsRecurring
         );
     }
 
@@ -389,6 +447,25 @@ public class FinanceTxService {
         return normalized;
     }
 
+    private String normalizeIsRecurring(String isRecurring, String isFixed, String txType) {
+        if (!"EXPENSE".equals(txType) || !"Y".equals(isFixed)) {
+            return "N";
+        }
+        if (isRecurring == null) {
+            return "N";
+        }
+
+        String normalized = isRecurring.trim().toUpperCase();
+        if (normalized.isEmpty()) {
+            return "N";
+        }
+        if (!"Y".equals(normalized) && !"N".equals(normalized)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Recurring flag is invalid.");
+        }
+
+        return normalized;
+    }
+
     private Long normalizeId(Long id) {
         if (id == null || id <= 0) {
             throw new ResponseStatusException(BAD_REQUEST, "Id is invalid.");
@@ -410,5 +487,13 @@ public class FinanceTxService {
 
     private BigDecimal defaultIfNull(BigDecimal amount) {
         return amount != null ? amount : BigDecimal.ZERO;
+    }
+
+    private String toRecurringDedupKey(FinanceTx tx) {
+        return tx.getCategoryId()
+                + "|"
+                + defaultIfNull(tx.getAmount()).stripTrailingZeros().toPlainString()
+                + "|"
+                + (tx.getDescription() != null ? tx.getDescription().trim() : "");
     }
 }

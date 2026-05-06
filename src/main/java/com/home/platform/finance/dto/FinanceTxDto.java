@@ -13,6 +13,7 @@ public record FinanceTxDto(
         String description,
         String paymentMethod,
         String isFixed,
+        String isRecurring,
         String createdAt
 ) {
 }

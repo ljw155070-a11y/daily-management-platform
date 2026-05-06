@@ -6,10 +6,13 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FinanceTxServiceTest {
@@ -38,6 +41,79 @@ class FinanceTxServiceTest {
         assertEquals(6, trend.size());
         assertEquals(new MonthlyTrendDto(2025, 12, BigDecimal.valueOf(100000), BigDecimal.valueOf(50000)), trend.get(0));
         assertEquals(new MonthlyTrendDto(2026, 5, BigDecimal.valueOf(150000), BigDecimal.valueOf(100000)), trend.get(5));
+    }
+
+    @Test
+    void 반복_거래는_중복을_건너뛰고_다음달로_복사한다() {
+        FinanceTxRepository txRepository = mock(FinanceTxRepository.class);
+        FinanceCategoryRepository categoryRepository = mock(FinanceCategoryRepository.class);
+        FinanceTxService service = new FinanceTxService(txRepository, categoryRepository);
+
+        FinanceTx recurring = new FinanceTx();
+        recurring.setUserId("homehub");
+        recurring.setTxType("EXPENSE");
+        recurring.setCategoryId(10L);
+        recurring.setAmount(BigDecimal.valueOf(50000));
+        recurring.setTxDate(LocalDate.of(2026, 1, 31));
+        recurring.setDescription("월세");
+        recurring.setPaymentMethod("TRANSFER");
+        recurring.setIsFixed("Y");
+        recurring.setIsRecurring("Y");
+
+        FinanceTx duplicateExisting = new FinanceTx();
+        duplicateExisting.setUserId("homehub");
+        duplicateExisting.setTxType("EXPENSE");
+        duplicateExisting.setCategoryId(20L);
+        duplicateExisting.setAmount(BigDecimal.valueOf(15000));
+        duplicateExisting.setTxDate(LocalDate.of(2026, 2, 10));
+        duplicateExisting.setDescription("구독료");
+        duplicateExisting.setPaymentMethod("CARD");
+        duplicateExisting.setIsFixed("Y");
+        duplicateExisting.setIsRecurring("Y");
+
+        FinanceTx duplicateSource = new FinanceTx();
+        duplicateSource.setUserId("homehub");
+        duplicateSource.setTxType("EXPENSE");
+        duplicateSource.setCategoryId(20L);
+        duplicateSource.setAmount(BigDecimal.valueOf(15000));
+        duplicateSource.setTxDate(LocalDate.of(2026, 1, 10));
+        duplicateSource.setDescription("구독료");
+        duplicateSource.setPaymentMethod("CARD");
+        duplicateSource.setIsFixed("Y");
+        duplicateSource.setIsRecurring("Y");
+
+        when(txRepository.findByUserIdAndIsRecurringAndTxDateBetween(
+                "homehub",
+                "Y",
+                LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 1, 31)
+        )).thenReturn(List.of(recurring, duplicateSource));
+        when(txRepository.findByUserIdAndTxDateBetweenOrderByTxDateDescCreatedAtDesc(
+                "homehub",
+                LocalDate.of(2026, 2, 1),
+                LocalDate.of(2026, 2, 28)
+        )).thenReturn(List.of(duplicateExisting));
+
+        service.generateRecurringTransactions("homehub", 2026, 2);
+
+        verify(txRepository).saveAll(argThat(items -> {
+            List<FinanceTx> list = items == null
+                    ? List.of()
+                    : StreamSupport.stream(items.spliterator(), false).toList();
+            if (list.size() != 1) {
+                return false;
+            }
+            FinanceTx generated = list.get(0);
+            return "homehub".equals(generated.getUserId())
+                    && "EXPENSE".equals(generated.getTxType())
+                    && Long.valueOf(10L).equals(generated.getCategoryId())
+                    && BigDecimal.valueOf(50000).compareTo(generated.getAmount()) == 0
+                    && LocalDate.of(2026, 2, 28).equals(generated.getTxDate())
+                    && "월세".equals(generated.getDescription())
+                    && "TRANSFER".equals(generated.getPaymentMethod())
+                    && "Y".equals(generated.getIsFixed())
+                    && "Y".equals(generated.getIsRecurring());
+        }));
     }
 
     private void stubMonthlySum(FinanceTxRepository repository, String userId, String txType, int year, int month, int amount) {

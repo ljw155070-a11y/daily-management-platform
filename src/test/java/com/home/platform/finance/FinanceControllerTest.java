@@ -38,4 +38,22 @@ class FinanceControllerTest {
         assertArrayEquals(excelBytes, response.getBody());
         verify(excelService).exportMonthlyTransactions("homehub", 2026, 5);
     }
+
+    @Test
+    void 반복_거래_생성_API를_호출한다() {
+        FinanceCategoryService categoryService = mock(FinanceCategoryService.class);
+        FinanceTxService txService = mock(FinanceTxService.class);
+        FinanceBudgetService budgetService = mock(FinanceBudgetService.class);
+        FinanceExcelService excelService = mock(FinanceExcelService.class);
+        Authentication authentication = mock(Authentication.class);
+
+        when(authentication.getName()).thenReturn("homehub");
+
+        FinanceController controller = new FinanceController(categoryService, txService, budgetService, excelService);
+
+        ResponseEntity<Void> response = controller.generateRecurring(authentication, 2026, 5);
+
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+        verify(txService).generateRecurringTransactions("homehub", 2026, 5);
+    }
 }

@@ -9,6 +9,7 @@ public record FinanceTxSaveRequest(
         String txDate,
         String description,
         String paymentMethod,
-        String isFixed
+        String isFixed,
+        String isRecurring
 ) {
 }

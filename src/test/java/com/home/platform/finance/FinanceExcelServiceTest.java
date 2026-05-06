@@ -32,6 +32,7 @@ class FinanceExcelServiceTest {
                         "5월 급여",
                         "TRANSFER",
                         "N",
+                        "N",
                         "2026-05-01 09:00"
                 ),
                 new FinanceTxDto(
@@ -44,6 +45,7 @@ class FinanceExcelServiceTest {
                         "2026-05-02",
                         "점심 식사",
                         "CARD",
+                        "Y",
                         "Y",
                         "2026-05-02 12:30"
                 )

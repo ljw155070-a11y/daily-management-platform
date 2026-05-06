@@ -868,6 +868,16 @@ textarea.form-input {
     color: #5f6570;
 }
 
+.badge-recurring {
+    font-size: 0.62rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #f0f5fc;
+    color: #3b6fd4;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
 .transaction-amount {
     font-size: 0.86rem;
     font-weight: 600;
