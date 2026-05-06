@@ -313,6 +313,106 @@
     min-height: 280px;
 }
 
+.trend-section {
+    margin-bottom: 0;
+}
+
+.trend-title {
+    margin: 0 0 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #5f6570;
+}
+
+.trend-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 12px 8px;
+    min-height: 160px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 14px;
+}
+
+.trend-chart-inner {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 8px;
+    min-height: 120px;
+}
+
+.trend-month {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+}
+
+.trend-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 120px;
+}
+
+.trend-bar {
+    width: 18px;
+    border-radius: 4px 4px 0 0;
+    min-height: 2px;
+    transition: height 0.4s ease;
+    cursor: default;
+}
+
+.trend-bar.income { background: #2d9d5e; }
+.trend-bar.expense { background: #d94848; }
+
+.trend-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #8b919a;
+}
+
+.trend-legend {
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    margin-top:8px;
+    font-size:0.7rem;
+    color:#8b919a;
+}
+
+.legend-item {
+    display:flex;
+    align-items:center;
+    gap:4px;
+}
+
+.legend-dot {
+    width:8px;
+    height:8px;
+    border-radius:2px;
+}
+
+.legend-dot.income { background:#2d9d5e; }
+.legend-dot.expense { background:#d94848; }
+
+.trend-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    color: #8b919a;
+    font-size: 0.82rem;
+}
+
+.section-divider {
+    border-top: 1px solid #f0f1f3;
+    margin: 14px 0;
+}
+
 .category-chart-list {
     display: flex;
     flex-direction: column;
@@ -369,6 +469,17 @@
 }
 .change-badge.up { background: #fdf3f3; color: #d94848; }
 .change-badge.down { background: #f0f5fc; color: #3b6fd4; }
+
+.analysis-subtitle {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1b1d21;
+}
+
+.category-section-empty {
+    min-height: 72px;
+}
 
 .category-values {
     display: flex;

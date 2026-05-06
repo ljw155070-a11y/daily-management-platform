@@ -18,6 +18,7 @@ const els = {
   summaryVariableExpense: document.getElementById("summary-variable-expense"),
   summaryBalance: document.getElementById("summary-balance"),
   insight: document.getElementById("finance-insight"),
+  trendChart: document.getElementById("trend-chart"),
   chartList: document.getElementById("category-chart-list"),
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
@@ -74,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function renderAll() {
   renderSummary();
+  renderTrendChart();
   renderCategoryChart();
   renderBudgetBars();
   renderCalendar();
@@ -91,33 +93,122 @@ function renderSummary() {
   if (els.summaryBalance) els.summaryBalance.textContent = formatAmount(summaryState.balance);
 }
 
-function renderCategoryChart() {
-  if (!els.chartList) return;
+function renderTrendChart() {
+  if (!els.trendChart) return;
 
-  const items = Array.isArray(summaryState.expenseByCategory) ? summaryState.expenseByCategory : [];
-  els.chartList.innerHTML = items.map((item) => {
-    const categoryName = item.categoryName || TEXT.formCategory;
-    const icon = item.icon || "•";
-    const percentage = clampPercentage(item.percentage);
+  const trend = Array.isArray(summaryState.trend) ? summaryState.trend : [];
+  if (trend.length === 0) {
+    els.trendChart.innerHTML = `<div class="trend-empty">${escHtml(TEXT.historyEmpty)}</div>`;
+    return;
+  }
+
+  const max = Math.max(
+    1,
+    ...trend.flatMap((item) => [toNumber(item.income), toNumber(item.expense)])
+  );
+
+  const monthsHtml = trend.map((item) => {
+    const incomeHeight = max > 0 ? (toNumber(item.income) / max) * 120 : 0;
+    const expenseHeight = max > 0 ? (toNumber(item.expense) / max) * 120 : 0;
     return `
-      <div class="category-chart-item chart-bar analysis-section">
-        <div class="category-chart-top">
-          <div class="category-meta">
-            <span class="category-icon">${escHtml(icon)}</span>
-            <span class="category-name">${escHtml(categoryName)}</span>
-          </div>
-          <div class="category-values">
-            <strong>${formatAmount(item.amount)}</strong>
-            <span>${formatPercent(percentage)}</span>
-          </div>
+      <div class="trend-month">
+        <div class="trend-bars">
+          <div class="trend-bar income" style="height:${incomeHeight}px" title="${escHtml(TEXT.summaryIncome)} ${formatAmount(item.income)}"></div>
+          <div class="trend-bar expense" style="height:${expenseHeight}px" title="${escHtml(TEXT.summaryExpense)} ${formatAmount(item.expense)}"></div>
         </div>
-        <div class="category-bar-track chart-bar-track">
-          <div class="category-bar-fill chart-bar-fill" style="width:${percentage}%;"></div>
-        </div>
+        <div class="trend-label">${item.month}월</div>
       </div>`;
   }).join("");
 
-  toggleEmptyState(els.chartList, els.chartEmpty, items.length === 0, TEXT.historyEmpty);
+  els.trendChart.innerHTML = `
+    <div class="trend-chart-inner">${monthsHtml}</div>
+    <div class="trend-legend">
+      <span class="legend-item"><span class="legend-dot income"></span>${escHtml(TEXT.summaryIncome)}</span>
+      <span class="legend-item"><span class="legend-dot expense"></span>${escHtml(TEXT.summaryExpense)}</span>
+    </div>`;
+}
+
+function renderCategoryChart() {
+  if (!els.chartList) return;
+
+  const expenseItems = Array.isArray(summaryState.expenseByCategory) ? summaryState.expenseByCategory : [];
+  const incomeItems = Array.isArray(summaryState.incomeByCategory) ? summaryState.incomeByCategory : [];
+  const totalIncome = toNumber(summaryState.totalIncome);
+  const totalExpense = toNumber(summaryState.totalExpense);
+  const balance = toNumber(summaryState.balance);
+  const max = Math.max(totalIncome, totalExpense, 1);
+  const incomePercent = (totalIncome / max) * 100;
+  const expensePercent = (totalExpense / max) * 100;
+
+  const compareHtml = `
+    <div class="income-expense-compare">
+      <div class="compare-row">
+        <span class="compare-label">${escHtml(TEXT.summaryIncome)}</span>
+        <div class="compare-bar-track">
+          <div class="compare-bar-fill income" style="width:${incomePercent}%;"></div>
+        </div>
+        <span class="compare-value">${formatAmount(totalIncome)}</span>
+      </div>
+      <div class="compare-row">
+        <span class="compare-label">${escHtml(TEXT.summaryExpense)}</span>
+        <div class="compare-bar-track">
+          <div class="compare-bar-fill expense" style="width:${expensePercent}%;"></div>
+        </div>
+        <span class="compare-value">${formatAmount(totalExpense)}</span>
+      </div>
+      <div class="compare-balance">${escHtml(TEXT.summaryBalance)}: ${formatSignedAmount(balance)}</div>
+    </div>`;
+
+  const expenseHtml = renderCategorySection(expenseItems, TEXT.summaryExpense, "expense");
+  const incomeHtml = renderCategorySection(incomeItems, TEXT.summaryIncome, "income");
+  const hasData = totalIncome > 0 || totalExpense > 0 || expenseItems.length > 0 || incomeItems.length > 0;
+
+  els.chartList.innerHTML = `${compareHtml}${expenseHtml}${incomeHtml}`;
+  toggleEmptyState(els.chartList, els.chartEmpty, !hasData, TEXT.historyEmpty);
+}
+
+function renderCategorySection(items, title, type) {
+  const rowsHtml = items.length > 0
+    ? items.map((item) => {
+      const categoryName = item.categoryName || TEXT.formCategory;
+      const icon = item.icon || "•";
+      const percentage = clampPercentage(item.percentage);
+      const changeBadge = renderChangeBadge(item.changePercent);
+      return `
+        <div class="category-chart-item chart-bar">
+          <div class="category-chart-top">
+            <div class="category-meta">
+              <span class="category-icon">${escHtml(icon)}</span>
+              <span class="category-name">${escHtml(categoryName)}${changeBadge}</span>
+            </div>
+            <div class="category-values">
+              <strong>${formatAmount(item.amount)}</strong>
+              <span>${formatPercent(percentage)}</span>
+            </div>
+          </div>
+          <div class="category-bar-track chart-bar-track">
+            <div class="category-bar-fill chart-bar-fill ${type}" style="width:${percentage}%;"></div>
+          </div>
+        </div>`;
+    }).join("")
+    : `<div class="empty-state category-section-empty">${escHtml(TEXT.historyEmpty)}</div>`;
+
+  return `
+    <section class="category-section-block analysis-section">
+      <h3 class="analysis-subtitle">${escHtml(title)}</h3>
+      ${rowsHtml}
+    </section>`;
+}
+
+function renderChangeBadge(changePercent) {
+  if (changePercent == null) return "";
+  const value = Number(changePercent);
+  if (!Number.isFinite(value) || value === 0) return "";
+
+  if (value > 0) {
+    return ` <span class="change-badge up">▲${Math.round(value)}%</span>`;
+  }
+  return ` <span class="change-badge down">▼${Math.round(Math.abs(value))}%</span>`;
 }
 
 function renderBudgetBars() {
@@ -1120,6 +1211,9 @@ function normalizeSummary(summary) {
   normalized.variableExpense = toNumber(normalized.variableExpense);
   normalized.dailyAverage = toNumber(normalized.dailyAverage);
   normalized.balance = toNumber(normalized.balance ?? normalized.totalIncome - normalized.totalExpense);
+  normalized.trend = Array.isArray(normalized.trend)
+    ? normalized.trend.map((item) => ({ ...item, income: toNumber(item.income), expense: toNumber(item.expense) }))
+    : [];
   normalized.incomeByCategory = Array.isArray(normalized.incomeByCategory)
     ? normalized.incomeByCategory.map((item) => ({ ...item, amount: toNumber(item.amount), percentage: Number(item.percentage || 0), changePercent: item.changePercent == null ? null : Number(item.changePercent) }))
     : [];

@@ -12,6 +12,7 @@ public record FinanceMonthlySummaryDto(
         BigDecimal variableExpense,
         BigDecimal dailyAverage,
         BigDecimal balance,
+        List<MonthlyTrendDto> trend,
         List<CategorySummary> incomeByCategory,
         List<CategorySummary> expenseByCategory
 ) {

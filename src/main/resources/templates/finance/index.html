@@ -64,6 +64,11 @@
                         <h2 class="card-title" th:text="#{finance.chart.title}">Income & Expense</h2>
                     </div>
                 </div>
+                <div class="trend-section">
+                    <p class="trend-title" th:text="#{finance.trend.title}">최근 6개월 추이</p>
+                    <div id="trend-chart" class="trend-chart"></div>
+                </div>
+                <div class="section-divider"></div>
                 <div id="category-chart-list" class="category-chart-list chart-section">
                     <div class="category-chart-item" th:each="item : ${summary.expenseByCategory()}">
                         <div class="category-chart-top">
@@ -339,6 +344,7 @@
         budgetAmountPlaceholder: /*[[#{finance.budget.amountPlaceholder}]]*/ 'Budget amount',
         tabAnalysis: /*[[#{finance.tab.analysis}]]*/ 'Income & Expense',
         chartTitle: /*[[#{finance.chart.title}]]*/ 'Income & Expense',
+        trendTitle: /*[[#{finance.trend.title}]]*/ '6-month trend',
         comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
         insightTopCategory: /*[[#{finance.insight.topCategory}]]*/ 'Top spending category this month:',
         categoryManage: /*[[#{finance.category.manage}]]*/ 'Manage categories',

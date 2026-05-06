@@ -3,6 +3,7 @@ package com.home.platform.finance;
 import com.home.platform.finance.dto.FinanceMonthlySummaryDto;
 import com.home.platform.finance.dto.FinanceTxDto;
 import com.home.platform.finance.dto.FinanceTxSaveRequest;
+import com.home.platform.finance.dto.MonthlyTrendDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -117,6 +119,7 @@ public class FinanceTxService {
         int elapsedDays = calculateElapsedDays(yearMonth);
         BigDecimal dailyAverage = totalExpense.divide(BigDecimal.valueOf(elapsedDays), 0, RoundingMode.HALF_UP);
         BigDecimal balance = totalIncome.subtract(totalExpense);
+        List<MonthlyTrendDto> trend = getMonthlyTrend(normalizedUserId, yearMonth.getYear(), yearMonth.getMonthValue());
 
         List<FinanceMonthlySummaryDto.CategorySummary> incomeByCategory = txRepository
                 .sumByCategoryAndPeriod(normalizedUserId, "INCOME", startDate, endDate)
@@ -139,9 +142,36 @@ public class FinanceTxService {
                 variableExpense,
                 dailyAverage,
                 balance,
+                trend,
                 incomeByCategory,
                 expenseByCategory
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonthlyTrendDto> getMonthlyTrend(String userId, Integer year, Integer month) {
+        String normalizedUserId = normalizeUserId(userId);
+        YearMonth baseMonth = normalizeYearMonth(year, month);
+        List<MonthlyTrendDto> trend = new ArrayList<>();
+
+        for (int i = 5; i >= 0; i--) {
+            YearMonth yearMonth = baseMonth.minusMonths(i);
+            BigDecimal income = defaultIfNull(txRepository.sumByTypeAndPeriod(
+                    normalizedUserId,
+                    "INCOME",
+                    yearMonth.atDay(1),
+                    yearMonth.atEndOfMonth()
+            ));
+            BigDecimal expense = defaultIfNull(txRepository.sumByTypeAndPeriod(
+                    normalizedUserId,
+                    "EXPENSE",
+                    yearMonth.atDay(1),
+                    yearMonth.atEndOfMonth()
+            ));
+            trend.add(new MonthlyTrendDto(yearMonth.getYear(), yearMonth.getMonthValue(), income, expense));
+        }
+
+        return trend;
     }
 
     private int calculateElapsedDays(YearMonth yearMonth) {
