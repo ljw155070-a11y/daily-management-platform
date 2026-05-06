@@ -1315,8 +1315,27 @@ function hideCustomCategoryGroup() {
 
 function setDefaultDate() {
   if (!els.date) return;
-  const month = String(CURRENT_MONTH).padStart(2, "0");
-  els.date.value = `${CURRENT_YEAR}-${month}-01`;
+  els.date.value = getCurrentViewDefaultDate();
+}
+
+function setTodayDate() {
+  if (!els.date) return;
+  const today = new Date();
+  const year = String(today.getFullYear());
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  els.date.value = `${year}-${month}-${day}`;
+}
+
+function getCurrentViewDefaultDate() {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  if (CURRENT_YEAR === currentYear && CURRENT_MONTH === currentMonth) {
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, "0")}-${day}`;
+  }
+  return `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, "0")}-01`;
 }
 
 function formatAmount(amount) {
