@@ -131,7 +131,7 @@ function renderBudgetBars() {
     const remaining = amount - spent;
     const over = rawUsage > 100;
     const barStyle = over
-      ? "width:100%; background:linear-gradient(90deg, #ef4444 0%, #f87171 100%); box-shadow:0 4px 10px rgba(239,68,68,0.22);"
+      ? "width:100%; background:linear-gradient(90deg, #d94848 0%, #ee7b7b 100%); box-shadow:0 4px 10px rgba(217,72,72,0.22);"
       : `width:${usage}%;`;
     const name = budget.categoryName || TEXT.budgetTitle;
     return `
@@ -1274,7 +1274,7 @@ function showToast(message, type = "error") {
     bottom: "28px",
     left: "50%",
     transform: "translateX(-50%)",
-    background: type === "success" ? "#22c55e" : "#ef4444",
+    background: type === "success" ? "#2d9d5e" : "#d94848",
     color: "#fff",
     padding: "10px 20px",
     borderRadius: "8px",
