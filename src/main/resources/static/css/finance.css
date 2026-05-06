@@ -225,6 +225,12 @@
     color: #3b6fd4;
 }
 
+.finance-insight:empty {
+    display: none;
+    margin: 0;
+    padding: 0;
+}
+
 .dashboard-tab-bar {
     display: flex;
     gap: 0;
@@ -981,9 +987,17 @@ textarea.form-input {
     .finance-dashboard-grid {
         grid-template-columns: 1fr;
     }
+
+    .week-detail-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 @media (max-width: 760px) {
+    .finance-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .transaction-actions-row { opacity: 1; }
     .finance-layout {
         padding: 12px;
@@ -999,11 +1013,31 @@ textarea.form-input {
         gap: 8px;
     }
 
+    .hero-export-btn,
+    .hero-settings-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+
+    .hero-export-btn {
+        right: 50px;
+    }
+
     .budget-meta-row,
     .category-chart-top,
     .transaction-top-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .week-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .week-day-col {
+        min-height: 50px;
+        font-size: 0.65rem;
     }
 }
 
@@ -1059,10 +1093,6 @@ textarea.form-input {
 .calendar-cell.selected { background: #eef2ff; outline: 1.5px solid #3b6fd4; }
 .calendar-cell:nth-child(7n) { border-right: none; }
 .calendar-cell.empty { min-height: 40px; background: #fafbfc; cursor: default; }
-.calendar-cell.today { background: #fff7ed; outline: 2px solid #f97316; }
-.calendar-cell.today .calendar-day { color: #fff; background: #f97316; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-weight: 600; }
-.calendar-cell.today.selected { outline: 2px solid #f97316; background: #fff7ed; }
-
 .calendar-cell.today { background: #fff7ed; outline: 2px solid #f97316; }
 .calendar-cell.today .calendar-day { color: #fff; background: #f97316; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-weight: 600; }
 .calendar-cell.today.selected { outline: 2px solid #f97316; background: #fff7ed; }
@@ -1214,10 +1244,10 @@ textarea.form-input {
     font-weight: 500;
 }
 
+.hero-export-btn,
 .hero-settings-btn {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 14px;
     background: rgba(255,255,255,0.12);
     border: none;
     color: rgba(255,255,255,0.6);
@@ -1230,6 +1260,10 @@ textarea.form-input {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.hero-settings-btn {
+    right: 14px;
 }
 
 .hero-settings-btn:hover {
@@ -1317,9 +1351,7 @@ textarea.form-input {
 }
 
 .hero-export-btn {
-    position: absolute;
-    top: 16px;
-    right: 56px;
+    right: 54px;
     background: rgba(255,255,255,0.12);
     border: none;
     color: rgba(255,255,255,0.6);
