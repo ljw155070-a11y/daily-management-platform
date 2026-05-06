@@ -785,6 +785,12 @@ textarea.form-input {
     display: flex;
     gap: 4px;
     margin-top: 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.transaction-item:hover .transaction-actions-row {
+    opacity: 1;
 }
 
 .transaction-actions-row .action-btn {
@@ -857,6 +863,7 @@ textarea.form-input {
 }
 
 @media (max-width: 760px) {
+    .transaction-actions-row { opacity: 1; }
     .finance-layout {
         padding: 12px;
         gap: 8px;

@@ -133,8 +133,8 @@
             </div>
 
             <div class="finance-type-toggle" role="group" aria-label="transaction type">
-                <button type="button" class="finance-type-btn active" data-value="INCOME" th:text="#{finance.type.income}">Income</button>
-                <button type="button" class="finance-type-btn" data-value="EXPENSE" th:text="#{finance.type.expense}">Expense</button>
+                <button type="button" class="finance-type-btn" data-value="INCOME" th:text="#{finance.type.income}">Income</button>
+                <button type="button" class="finance-type-btn active" data-value="EXPENSE" th:text="#{finance.type.expense}">Expense</button>
             </div>
 
             <form id="finance-form" class="finance-form">
@@ -244,7 +244,7 @@
                     </div>
                 </article>
             </div>
-            <div id="transaction-history-empty" class="empty-state" th:text="#{finance.history.empty}">No transactions this month.</div>
+            <div id="transaction-history-empty" class="empty-state" th:text="#{finance.history.emptyGuide}">Try adding your first transaction from the form above.</div>
         </section>
     </aside>
 </div>
@@ -287,7 +287,7 @@
     const CURRENT_MONTH = /*[[${month}]]*/ 5;
     const TEXT = {
         pageTitle: /*[[#{page.finance.title}]]*/ 'Finance',
-        pageDesc: /*[[#{page.finance.desc}]]*/ 'Track income and expenses, manage budgets, and view monthly analysis.',
+        pageDesc: /*[[#{page.finance.desc}]]*/ 'Track income and expenses.',
         summaryIncome: /*[[#{finance.summary.income}]]*/ 'Income',
         summaryExpense: /*[[#{finance.summary.expense}]]*/ 'Expense',
         summaryDailyAvg: /*[[#{finance.summary.dailyAvg}]]*/ 'Daily avg.',
@@ -315,7 +315,7 @@
         formEdit: /*[[#{finance.form.edit}]]*/ 'Update',
         formEditing: /*[[#{finance.form.editing}]]*/ 'Updating...',
         historyTitle: /*[[#{finance.history.title}]]*/ 'Transactions',
-        historyEmpty: /*[[#{finance.history.empty}]]*/ 'No transactions this month.',
+        historyEmpty: /*[[#{finance.history.emptyGuide}]]*/ 'Try adding your first transaction from the form above.',
         filterAllCategory: /*[[#{finance.filter.allCategory}]]*/ 'All categories',
         filterAllPayment: /*[[#{finance.filter.allPayment}]]*/ 'All methods',
         searchPlaceholder: /*[[#{finance.search.placeholder}]]*/ 'Search notes...',
