@@ -731,6 +731,14 @@
     font-weight: 400;
 }
 
+.form-help-text {
+    margin: 6px 2px 0;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #5f6570;
+    min-height: 1em;
+}
+
 textarea.form-input {
     resize: vertical;
     min-height: 56px;

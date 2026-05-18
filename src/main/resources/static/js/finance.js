@@ -40,6 +40,7 @@ const els = {
   customCategoryGroup: document.getElementById("custom-category-group"),
   customCategory: document.getElementById("finance-custom-category"),
   amount: document.getElementById("finance-amount"),
+  amountDisplay: document.getElementById("finance-amount-display"),
   date: document.getElementById("finance-date"),
   fixedRow: document.getElementById("finance-fixed-row"),
   isFixed: document.getElementById("finance-is-fixed"),
@@ -68,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
+  renderAmountDisplay();
   populateFilterCategories();
   populateBudgetCategoryOptions();
   setDashboardTab("chart");
@@ -581,6 +583,9 @@ function bindEvents() {
   els.category?.addEventListener("change", () => {
     syncCustomCategoryVisibility();
   });
+  els.amount?.addEventListener("input", () => {
+    renderAmountDisplay();
+  });
   els.isFixed?.addEventListener("change", () => {
     syncRecurringFieldVisibility();
   });
@@ -753,6 +758,7 @@ function startEdit(id) {
 
   if (els.editId) els.editId.value = String(id);
   if (els.amount) els.amount.value = tx.amount ?? "";
+  renderAmountDisplay();
   if (els.date) els.date.value = tx.txDate || "";
   if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
   syncFixedFieldVisibility();
@@ -779,6 +785,7 @@ function copyTransaction(id) {
   hideCustomCategoryGroup();
 
   if (els.amount) els.amount.value = tx.amount ?? "";
+  renderAmountDisplay();
   setTodayDate();
   if (els.isFixed) els.isFixed.checked = tx.isFixed === "Y";
   syncFixedFieldVisibility();
@@ -806,6 +813,7 @@ function resetForm() {
   if (els.paymentMethod) els.paymentMethod.value = "CASH";
   if (els.isFixed) els.isFixed.checked = false;
   if (els.isRecurring) els.isRecurring.checked = false;
+  renderAmountDisplay();
   syncRecurringFieldVisibility();
   if (els.formTitle) els.formTitle.textContent = TEXT.formTitle;
   if (els.save) {
@@ -1316,6 +1324,27 @@ function hideCustomCategoryGroup() {
 function setDefaultDate() {
   if (!els.date) return;
   els.date.value = getCurrentViewDefaultDate();
+}
+
+function renderAmountDisplay() {
+  if (!els.amountDisplay) return;
+  const rawValue = els.amount?.value;
+  if (rawValue == null || rawValue === "") {
+    els.amountDisplay.textContent = "";
+    return;
+  }
+
+  const amount = Number(rawValue);
+  if (!Number.isFinite(amount) || amount < 0) {
+    els.amountDisplay.textContent = "";
+    return;
+  }
+
+  const formatted = amount.toLocaleString("ko-KR", {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 0,
+    maximumFractionDigits: 2,
+  });
+  els.amountDisplay.textContent = `${formatted}${TEXT.unit}`;
 }
 
 function setTodayDate() {
