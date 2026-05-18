@@ -4,7 +4,17 @@ let currentTxType = "EXPENSE";
 let summaryState = normalizeSummary(SUMMARY);
 let selectedCalendarDay = null;
 let calendarDetailView = "daily";
+let selectedModalIcon = "utensils";
 const DEFAULT_TX_TYPE = document.querySelector(".finance-type-btn.active")?.dataset.value || document.querySelector(".finance-type-btn")?.dataset.value || "EXPENSE";
+const ICON_LIST = [
+  "utensils", "coffee", "beer", "bus", "car", "fuel", "home", "smartphone",
+  "heart-pulse", "stethoscope", "book-open", "graduation-cap", "film", "gamepad-2",
+  "music", "shirt", "scissors", "gift", "shield", "piggy-bank", "trending-up",
+  "wallet", "briefcase", "landmark", "hand-coins", "rotate-ccw", "file-text",
+  "clipboard-list", "shopping-cart", "plane", "hotel", "laptop", "package",
+  "dog", "baby", "dumbbell", "trophy", "brush", "lightbulb", "phone", "cake",
+  "credit-card", "store", "wrench", "pen-line", "heart", "star", "receipt", "banknote",
+];
 
 const categoryList = Array.isArray(CATEGORIES) ? [...CATEGORIES] : [];
 sortCategoryList();
@@ -63,6 +73,8 @@ const els = {
   modalIncomeList: document.getElementById("modal-income-list"),
   modalAddType: document.getElementById("modal-add-type"),
   modalAddName: document.getElementById("modal-add-name"),
+  modalIconBtn: document.getElementById("modal-emoji-btn"),
+  modalIconPicker: document.getElementById("modal-icon-picker"),
   modalAddBtn: document.getElementById("modal-add-btn"),
 };
 
@@ -71,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
   syncCustomCategoryVisibility();
+  setSelectedModalIcon(getDefaultModalIcon(els.modalAddType?.value || "EXPENSE"));
   renderAmountDisplay();
   populateFilterCategories();
   populateBudgetCategoryOptions();
@@ -89,6 +102,7 @@ function renderAll() {
   renderYearlyReport();
   renderInsight();
   renderHistory();
+  applyLucideIcons();
 }
 
 function renderSummary() {
@@ -257,7 +271,7 @@ function renderCategorySection(items, title, type) {
         <div class="category-chart-item chart-bar">
           <div class="category-chart-top">
             <div class="category-meta">
-              <span class="category-icon">${escHtml(icon)}</span>
+              <span class="category-icon">${renderIcon(icon, 18)}</span>
               <span class="category-name">${escHtml(categoryName)}${changeBadge}</span>
             </div>
             <div class="category-values">
@@ -457,7 +471,7 @@ function renderCalendarDailyDetail(day) {
     ? items.map((tx) => `
         <div class="day-detail-item">
           <div class="day-detail-left">
-            <span class="day-detail-icon">${escHtml(tx.categoryIcon || "•")}</span>
+            <span class="day-detail-icon">${renderIcon(tx.categoryIcon, 16)}</span>
             <div>
               <span class="day-detail-name">${escHtml(tx.categoryName || TEXT.formCategory)}</span>
               ${tx.description ? `<span class="day-detail-memo">${escHtml(tx.description)}</span>` : ""}
@@ -482,6 +496,7 @@ function renderCalendarDailyDetail(day) {
     </div>
     <div class="day-detail-list">${listHtml}</div>`;
   els.calendarDayDetail.style.display = "block";
+  applyLucideIcons();
 }
 
 function renderCalendarWeekDetail(day) {
@@ -596,10 +611,10 @@ function renderInsight() {
     return;
   }
 
-  const icon = topCategory.icon ? `${topCategory.icon} ` : "";
   const name = topCategory.categoryName || TEXT.formCategory;
   els.insight.style.display = "block";
-  els.insight.textContent = `${TEXT.insightTopCategory} ${icon}${name} (${formatAmount(topCategory.amount)}) 입니다`;
+  els.insight.innerHTML = `${escHtml(TEXT.insightTopCategory)} <span class="insight-icon">${renderIcon(topCategory.icon, 16)}</span> ${escHtml(name)} (${formatAmount(topCategory.amount)}) 입니다`;
+  applyLucideIcons();
 }
 function renderHistory() {
   if (!els.historyList) return;
@@ -615,7 +630,7 @@ function renderHistory() {
     return `
       <article class="transaction-item" data-id="${tx.id}">
         <div class="transaction-main">
-          <div class="transaction-icon">${escHtml(icon)}</div>
+          <div class="transaction-icon">${renderIcon(icon, 20)}</div>
           <div class="transaction-body">
             <div class="transaction-top-row">
               <div class="transaction-title-row">
@@ -642,6 +657,7 @@ function renderHistory() {
 
   if (els.historyCount) els.historyCount.textContent = String(sorted.length);
   toggleEmptyState(els.historyList, els.historyEmpty, sorted.length === 0, TEXT.historyEmpty);
+  applyLucideIcons();
 }
 
 function bindEvents() {
@@ -675,6 +691,15 @@ function bindEvents() {
   els.categorySettingsBtn?.addEventListener("click", openCategoryModal);
   els.modalClose?.addEventListener("click", closeCategoryModal);
   els.modalAddBtn?.addEventListener("click", addCategoryFromModal);
+  els.modalAddType?.addEventListener("change", () => {
+    setSelectedModalIcon(getDefaultModalIcon(els.modalAddType?.value || "EXPENSE"));
+    renderIconPicker();
+  });
+  els.modalIconBtn?.addEventListener("click", () => {
+    els.modalIconPicker?.classList.toggle("is-open");
+    applyLucideIcons();
+  });
+  els.modalIconPicker?.addEventListener("click", handleIconPickerClick);
   els.categoryModal?.addEventListener("click", (event) => {
     if (event.target === els.categoryModal) {
       closeCategoryModal();
@@ -1014,10 +1039,12 @@ function resetBudgetForm() {
   }
 }
 function openCategoryModal() {
+  setSelectedModalIcon(getDefaultModalIcon(els.modalAddType?.value || "EXPENSE"));
   renderCategoryModal();
   if (els.categoryModal) {
     els.categoryModal.style.display = "flex";
   }
+  applyLucideIcons();
 }
 
 function closeCategoryModal() {
@@ -1027,6 +1054,10 @@ function closeCategoryModal() {
   if (els.modalAddName) {
     els.modalAddName.value = "";
   }
+  if (els.modalIconPicker) {
+    els.modalIconPicker.classList.remove("is-open");
+  }
+  setSelectedModalIcon(getDefaultModalIcon(els.modalAddType?.value || "EXPENSE"));
   populateCategoryOptions(currentTxType, els.category?.value || null);
   populateFilterCategories();
   syncCustomCategoryVisibility();
@@ -1036,6 +1067,9 @@ function closeCategoryModal() {
 function renderCategoryModal() {
   renderCategoryModalList("EXPENSE", els.modalExpenseList);
   renderCategoryModalList("INCOME", els.modalIncomeList);
+  renderIconPicker();
+  updateModalIconButton();
+  applyLucideIcons();
 }
 
 function renderCategoryModalList(catType, container) {
@@ -1048,7 +1082,7 @@ function renderCategoryModalList(catType, container) {
     const disableDown = index === categories.length - 1 ? "disabled" : "";
     return `
       <div class="modal-category-item" data-id="${category.id}">
-        <span class="cat-icon">${escHtml(category.icon || "•")}</span>
+        <span class="cat-icon">${renderIcon(category.icon, 18)}</span>
         <span class="cat-name">${escHtml(category.catName)}</span>
         <div class="cat-order-actions">
           <button type="button" class="cat-move" data-action="move-up" data-type="${catType}" data-id="${category.id}" ${disableUp}>↑</button>
@@ -1080,6 +1114,15 @@ async function handleCategoryModalAction(event) {
   }
 }
 
+function handleIconPickerClick(event) {
+  const button = event.target.closest("button[data-icon]");
+  if (!button) return;
+  const icon = button.dataset.icon || getDefaultModalIcon(els.modalAddType?.value || "EXPENSE");
+  setSelectedModalIcon(icon);
+  els.modalIconPicker?.classList.remove("is-open");
+  renderIconPicker();
+}
+
 async function addCategoryFromModal() {
   const catType = els.modalAddType?.value || "EXPENSE";
   const catName = (els.modalAddName?.value || "").trim();
@@ -1088,7 +1131,7 @@ async function addCategoryFromModal() {
     return;
   }
 
-  const params = new URLSearchParams({ catType, catName });
+  const params = new URLSearchParams({ catType, catName, icon: selectedModalIcon });
   try {
     const response = await fetch("/finance/categories", {
       method: "POST",
@@ -1110,6 +1153,8 @@ async function addCategoryFromModal() {
       els.modalAddName.value = "";
       els.modalAddName.focus();
     }
+    setSelectedModalIcon(getDefaultModalIcon(catType));
+    renderIconPicker();
   } catch (error) {
     console.error("addCategoryFromModal error:", error);
     showToast(TEXT.toastSaveFailed);
@@ -1193,6 +1238,30 @@ function getCategoriesByType(catType) {
   return [...categoryList]
     .filter((category) => category.catType === catType)
     .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+}
+
+function getDefaultModalIcon(catType) {
+  return catType === "INCOME" ? "wallet" : "utensils";
+}
+
+function setSelectedModalIcon(iconName) {
+  selectedModalIcon = iconName || getDefaultModalIcon(els.modalAddType?.value || "EXPENSE");
+  updateModalIconButton();
+}
+
+function updateModalIconButton() {
+  if (!els.modalIconBtn) return;
+  els.modalIconBtn.innerHTML = renderIcon(selectedModalIcon, 18);
+  applyLucideIcons();
+}
+
+function renderIconPicker() {
+  if (!els.modalIconPicker) return;
+  els.modalIconPicker.innerHTML = ICON_LIST.map((name) => `
+    <button type="button" class="icon-option${name === selectedModalIcon ? " active" : ""}" data-icon="${name}" aria-label="${name}">
+      ${renderIcon(name, 18)}
+    </button>`).join("");
+  applyLucideIcons();
 }
 
 function sortCategoryList() {
@@ -1446,6 +1515,24 @@ function getCurrentViewDefaultDate() {
     return `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, "0")}-${day}`;
   }
   return `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, "0")}-01`;
+}
+
+function renderIcon(iconName, size = 16) {
+  if (!iconName) {
+    return `<i data-lucide="circle" style="width:${size}px;height:${size}px;"></i>`;
+  }
+
+  if (/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]/u.test(iconName)) {
+    return `<span style="font-size:${size}px;">${escHtml(iconName)}</span>`;
+  }
+
+  return `<i data-lucide="${escHtml(iconName)}" style="width:${size}px;height:${size}px;"></i>`;
+}
+
+function applyLucideIcons() {
+  if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+    lucide.createIcons();
+  }
 }
 
 function formatAmount(amount) {

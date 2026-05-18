@@ -23,24 +23,24 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class FinanceCategoryService {
 
     private static final List<DefaultCategory> DEFAULT_CATEGORIES = List.of(
-            new DefaultCategory("EXPENSE", "식비", "🍚", 1),
-            new DefaultCategory("EXPENSE", "교통", "🚌", 2),
-            new DefaultCategory("EXPENSE", "주거/관리비", "🏠", 3),
-            new DefaultCategory("EXPENSE", "통신", "📱", 4),
-            new DefaultCategory("EXPENSE", "의료/건강", "🏥", 5),
-            new DefaultCategory("EXPENSE", "교육", "📖", 6),
-            new DefaultCategory("EXPENSE", "문화/여가", "🎬", 7),
-            new DefaultCategory("EXPENSE", "의류/미용", "👔", 8),
-            new DefaultCategory("EXPENSE", "경조사", "🎁", 9),
-            new DefaultCategory("EXPENSE", "보험", "🛡", 10),
-            new DefaultCategory("EXPENSE", "저축/투자", "💰", 11),
-            new DefaultCategory("EXPENSE", "기타 지출", "📋", 12),
-            new DefaultCategory("INCOME", "급여", "💵", 1),
-            new DefaultCategory("INCOME", "부수입", "💼", 2),
-            new DefaultCategory("INCOME", "이자/배당", "🏦", 3),
-            new DefaultCategory("INCOME", "용돈", "🤝", 4),
-            new DefaultCategory("INCOME", "환급", "🔄", 5),
-            new DefaultCategory("INCOME", "기타 수입", "📋", 6)
+            new DefaultCategory("EXPENSE", "식비", "utensils", 1),
+            new DefaultCategory("EXPENSE", "교통", "bus", 2),
+            new DefaultCategory("EXPENSE", "주거/관리비", "home", 3),
+            new DefaultCategory("EXPENSE", "통신", "smartphone", 4),
+            new DefaultCategory("EXPENSE", "의료/건강", "heart-pulse", 5),
+            new DefaultCategory("EXPENSE", "교육", "book-open", 6),
+            new DefaultCategory("EXPENSE", "문화/여가", "film", 7),
+            new DefaultCategory("EXPENSE", "의류/미용", "shirt", 8),
+            new DefaultCategory("EXPENSE", "경조사", "gift", 9),
+            new DefaultCategory("EXPENSE", "보험", "shield", 10),
+            new DefaultCategory("EXPENSE", "저축/투자", "piggy-bank", 11),
+            new DefaultCategory("EXPENSE", "기타 지출", "clipboard-list", 12),
+            new DefaultCategory("INCOME", "급여", "wallet", 1),
+            new DefaultCategory("INCOME", "부수입", "briefcase", 2),
+            new DefaultCategory("INCOME", "이자/배당", "landmark", 3),
+            new DefaultCategory("INCOME", "용돈", "hand-coins", 4),
+            new DefaultCategory("INCOME", "환급", "rotate-ccw", 5),
+            new DefaultCategory("INCOME", "기타 수입", "file-text", 6)
     );
 
     private final FinanceCategoryRepository repository;

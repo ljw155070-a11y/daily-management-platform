@@ -294,8 +294,10 @@
                     <option value="INCOME" th:text="#{finance.type.income}">수입</option>
                 </select>
                 <input id="modal-add-name" class="form-input" th:placeholder="#{finance.form.category}" placeholder="카테고리명" maxlength="100">
+                <button id="modal-emoji-btn" class="icon-picker-toggle" type="button" aria-label="icon picker"></button>
                 <button id="modal-add-btn" class="btn-save" type="button" th:text="#{finance.category.add}">추가</button>
             </div>
+            <div id="modal-icon-picker" class="icon-picker-grid"></div>
         </div>
     </div>
 </div>
@@ -389,7 +391,13 @@
     /*]]>*/
 </script>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script th:src="@{/js/finance.js(v=1)}"></script>
+<script>
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>
 
 </body>
 </html>
