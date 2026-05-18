@@ -77,7 +77,7 @@
                                 <span class="category-name" th:text="${item.categoryName}">Category</span>
                             </div>
                             <div class="category-values">
-                                <strong th:text="|₩${#numbers.formatInteger(item.amount, 0, 'COMMA')}|">₩0</strong>
+                                <strong th:text="|₩${#numbers.formatInteger(item.amount, 1, 'COMMA')}|">₩0</strong>
                                 <span th:text="|${#numbers.formatDecimal(item.percentage, 1, 2)}%|">0%</span>
                             </div>
                         </div>
@@ -101,7 +101,7 @@
                         <div class="budget-item-top">
                             <div>
                                 <p class="budget-name" th:text="${budget.categoryName != null ? budget.categoryName : #{finance.budget.title}}">Budget</p>
-                                <p class="budget-amount" th:text="|₩${#numbers.formatInteger(budget.amount, 0, 'COMMA')}|">₩0</p>
+                                <p class="budget-amount" th:text="|₩${#numbers.formatInteger(budget.amount, 1, 'COMMA')}|">₩0</p>
                             </div>
                             <span class="budget-percent" th:text="|${#numbers.formatDecimal(usage, 1, 2)}%|">0%</span>
                         </div>
@@ -109,8 +109,8 @@
                             <div class="budget-bar-fill" th:style="|width:${usage}%;|"></div>
                         </div>
                         <div class="budget-meta-row">
-                            <span th:text="|#{finance.budget.spent}: ₩${#numbers.formatInteger(budget.spent, 0, 'COMMA')}|">Spent</span>
-                            <span th:text="|#{finance.budget.remaining}: ₩${#numbers.formatInteger(remaining, 0, 'COMMA')}|">Remaining</span>
+                            <span th:text="|#{finance.budget.spent}: ₩${#numbers.formatInteger(budget.spent, 1, 'COMMA')}|">Spent</span>
+                            <span th:text="|#{finance.budget.remaining}: ₩${#numbers.formatInteger(remaining, 1, 'COMMA')}|">Remaining</span>
                         </div>
                     </div>
                 </div>
@@ -244,7 +244,7 @@
                                 </div>
                                 <span class="transaction-amount"
                                       th:classappend="${transaction.txType == 'INCOME'} ? ' income' : ' expense'"
-                                      th:text="|₩${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}|">₩0</span>
+                                      th:text="|₩${#numbers.formatInteger(transaction.amount, 1, 'COMMA')}|">₩0</span>
                             </div>
                             <div class="transaction-meta">
                                 <span th:text="${transaction.txDate}">2025-05-01</span>
