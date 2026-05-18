@@ -60,6 +60,7 @@ class FinanceControllerViewTest {
                 BigDecimal.valueOf(10000),
                 BigDecimal.valueOf(700000),
                 List.of(new MonthlyTrendDto(2026, 5, BigDecimal.valueOf(1000000), BigDecimal.valueOf(300000))),
+                List.of(new MonthlyTrendDto(2026, 1, BigDecimal.valueOf(900000), BigDecimal.valueOf(250000))),
                 List.of(),
                 List.of()
         );

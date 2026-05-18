@@ -44,6 +44,24 @@ class FinanceTxServiceTest {
     }
 
     @Test
+    void 연간_결산은_1월부터_12월까지_월별_수입지출을_반환한다() {
+        FinanceTxRepository txRepository = mock(FinanceTxRepository.class);
+        FinanceCategoryRepository categoryRepository = mock(FinanceCategoryRepository.class);
+        FinanceTxService service = new FinanceTxService(txRepository, categoryRepository);
+
+        for (int month = 1; month <= 12; month++) {
+            stubMonthlySum(txRepository, "homehub", "INCOME", 2026, month, month * 10000);
+            stubMonthlySum(txRepository, "homehub", "EXPENSE", 2026, month, month * 5000);
+        }
+
+        List<MonthlyTrendDto> yearlyReport = service.getYearlyReport("homehub", 2026);
+
+        assertEquals(12, yearlyReport.size());
+        assertEquals(new MonthlyTrendDto(2026, 1, BigDecimal.valueOf(10000), BigDecimal.valueOf(5000)), yearlyReport.get(0));
+        assertEquals(new MonthlyTrendDto(2026, 12, BigDecimal.valueOf(120000), BigDecimal.valueOf(60000)), yearlyReport.get(11));
+    }
+
+    @Test
     void 반복_거래는_중복을_건너뛰고_다음달로_복사한다() {
         FinanceTxRepository txRepository = mock(FinanceTxRepository.class);
         FinanceCategoryRepository categoryRepository = mock(FinanceCategoryRepository.class);

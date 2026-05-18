@@ -175,6 +175,7 @@ public class FinanceTxService {
         BigDecimal dailyAverage = totalExpense.divide(BigDecimal.valueOf(elapsedDays), 0, RoundingMode.HALF_UP);
         BigDecimal balance = totalIncome.subtract(totalExpense);
         List<MonthlyTrendDto> trend = getMonthlyTrend(normalizedUserId, yearMonth.getYear(), yearMonth.getMonthValue());
+        List<MonthlyTrendDto> yearlyReport = getYearlyReport(normalizedUserId, yearMonth.getYear());
 
         List<FinanceMonthlySummaryDto.CategorySummary> incomeByCategory = txRepository
                 .sumByCategoryAndPeriod(normalizedUserId, "INCOME", startDate, endDate)
@@ -198,6 +199,7 @@ public class FinanceTxService {
                 dailyAverage,
                 balance,
                 trend,
+                yearlyReport,
                 incomeByCategory,
                 expenseByCategory
         );
@@ -227,6 +229,34 @@ public class FinanceTxService {
         }
 
         return trend;
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonthlyTrendDto> getYearlyReport(String userId, Integer year) {
+        String normalizedUserId = normalizeUserId(userId);
+        if (year == null || year < 1900 || year > 9999) {
+            throw new ResponseStatusException(BAD_REQUEST, "Year is invalid.");
+        }
+
+        List<MonthlyTrendDto> result = new ArrayList<>();
+        for (int month = 1; month <= 12; month++) {
+            YearMonth yearMonth = YearMonth.of(year, month);
+            BigDecimal income = defaultIfNull(txRepository.sumByTypeAndPeriod(
+                    normalizedUserId,
+                    "INCOME",
+                    yearMonth.atDay(1),
+                    yearMonth.atEndOfMonth()
+            ));
+            BigDecimal expense = defaultIfNull(txRepository.sumByTypeAndPeriod(
+                    normalizedUserId,
+                    "EXPENSE",
+                    yearMonth.atDay(1),
+                    yearMonth.atEndOfMonth()
+            ));
+            result.add(new MonthlyTrendDto(year, month, income, expense));
+        }
+
+        return result;
     }
 
     private int calculateElapsedDays(YearMonth yearMonth) {

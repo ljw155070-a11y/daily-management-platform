@@ -55,6 +55,7 @@
             <button type="button" class="dashboard-tab active" data-tab="chart" th:text="#{finance.tab.analysis}">수입·지출 분석</button>
             <button type="button" class="dashboard-tab" data-tab="budget" th:text="#{finance.budget.title}">Budget</button>
             <button type="button" class="dashboard-tab" data-tab="calendar" th:text="#{finance.tab.calendar}">달력</button>
+            <button type="button" class="dashboard-tab" data-tab="yearly" th:text="#{finance.tab.yearly}">연간</button>
         </div>
 
         <div class="finance-dashboard-grid">
@@ -126,6 +127,13 @@
                 <div id="calendar-grid" class="calendar-grid"></div>
                 <div id="calendar-day-detail" class="calendar-day-detail" style="display:none"></div>
             </div>
+            <article id="dashboard-yearly" class="dashboard-card dashboard-panel" data-panel="yearly" style="display:none">
+                <div class="card-head">
+                    <h2 class="card-title" th:text="#{finance.tab.yearly}">연간 결산</h2>
+                </div>
+                <div id="yearly-chart" class="yearly-chart"></div>
+                <div id="yearly-table" class="yearly-table"></div>
+            </article>
         </div>
     </section>
 
@@ -358,6 +366,8 @@
         tabAnalysis: /*[[#{finance.tab.analysis}]]*/ 'Income & Expense',
         chartTitle: /*[[#{finance.chart.title}]]*/ 'Income & Expense',
         trendTitle: /*[[#{finance.trend.title}]]*/ '6-month trend',
+        tabYearly: /*[[#{finance.tab.yearly}]]*/ 'Yearly',
+        yearlyTotal: /*[[#{finance.yearly.total}]]*/ 'Total',
         comparePrevMonth: /*[[#{finance.compare.prevMonth}]]*/ 'vs last month',
         insightTopCategory: /*[[#{finance.insight.topCategory}]]*/ 'Top spending category this month:',
         categoryManage: /*[[#{finance.category.manage}]]*/ 'Manage categories',

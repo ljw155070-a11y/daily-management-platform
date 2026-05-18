@@ -28,6 +28,8 @@ const els = {
   budgetSaveBtn: document.getElementById("budget-save-btn"),
   calendarGrid: document.getElementById("calendar-grid"),
   calendarDayDetail: document.getElementById("calendar-day-detail"),
+  yearlyChart: document.getElementById("yearly-chart"),
+  yearlyTable: document.getElementById("yearly-table"),
   historyList: document.getElementById("transaction-history-list"),
   historyEmpty: document.getElementById("transaction-history-empty"),
   historyCount: document.querySelector(".history-count"),
@@ -84,6 +86,7 @@ function renderAll() {
   renderBudgetBars();
   renderCalendar();
   renderCalendarDayDetail();
+  renderYearlyReport();
   renderInsight();
   renderHistory();
 }
@@ -169,6 +172,78 @@ function renderCategoryChart() {
 
   els.chartList.innerHTML = `${compareHtml}${expenseHtml}${incomeHtml}`;
   toggleEmptyState(els.chartList, els.chartEmpty, !hasData, TEXT.historyEmpty);
+}
+
+function renderYearlyReport() {
+  const yearly = Array.isArray(summaryState.yearlyReport) ? summaryState.yearlyReport : [];
+  if (els.yearlyChart) {
+    if (yearly.length === 0) {
+      els.yearlyChart.innerHTML = `<div class="trend-empty">${escHtml(TEXT.historyEmpty)}</div>`;
+    } else {
+      const max = Math.max(1, ...yearly.flatMap((item) => [toNumber(item.income), toNumber(item.expense)]));
+      const chartHtml = yearly.map((item) => {
+        const incomeHeight = max > 0 ? (toNumber(item.income) / max) * 140 : 0;
+        const expenseHeight = max > 0 ? (toNumber(item.expense) / max) * 140 : 0;
+        return `
+          <div class="yearly-month">
+            <div class="yearly-bars">
+              <div class="yearly-bar income" style="height:${incomeHeight}px" title="${escHtml(TEXT.summaryIncome)} ${formatAmount(item.income)}"></div>
+              <div class="yearly-bar expense" style="height:${expenseHeight}px" title="${escHtml(TEXT.summaryExpense)} ${formatAmount(item.expense)}"></div>
+            </div>
+            <div class="yearly-label">${item.month}월</div>
+          </div>`;
+      }).join("");
+
+      els.yearlyChart.innerHTML = `
+        <div class="yearly-chart-inner">${chartHtml}</div>
+        <div class="trend-legend">
+          <span class="legend-item"><span class="legend-dot income"></span>${escHtml(TEXT.summaryIncome)}</span>
+          <span class="legend-item"><span class="legend-dot expense"></span>${escHtml(TEXT.summaryExpense)}</span>
+        </div>`;
+    }
+  }
+
+  if (!els.yearlyTable) return;
+
+  if (yearly.length === 0) {
+    els.yearlyTable.innerHTML = `<div class="empty-state">${escHtml(TEXT.historyEmpty)}</div>`;
+    return;
+  }
+
+  const totalIncome = yearly.reduce((sum, item) => sum + toNumber(item.income), 0);
+  const totalExpense = yearly.reduce((sum, item) => sum + toNumber(item.expense), 0);
+  const totalBalance = totalIncome - totalExpense;
+  const rowsHtml = yearly.map((item) => {
+    const balance = toNumber(item.income) - toNumber(item.expense);
+    return `
+      <tr>
+        <td>${item.month}월</td>
+        <td class="income">+${formatAmount(item.income)}</td>
+        <td class="expense">-${formatAmount(item.expense)}</td>
+        <td class="balance">${formatSignedAmount(balance)}</td>
+      </tr>`;
+  }).join("");
+
+  els.yearlyTable.innerHTML = `
+    <table class="yearly-detail-table">
+      <thead>
+        <tr>
+          <th>월</th>
+          <th>${escHtml(TEXT.summaryIncome)}</th>
+          <th>${escHtml(TEXT.summaryExpense)}</th>
+          <th>${escHtml(TEXT.summaryBalance)}</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot>
+        <tr>
+          <td>${escHtml(TEXT.yearlyTotal)}</td>
+          <td class="income">+${formatAmount(totalIncome)}</td>
+          <td class="expense">-${formatAmount(totalExpense)}</td>
+          <td class="balance">${formatSignedAmount(totalBalance)}</td>
+        </tr>
+      </tfoot>
+    </table>`;
 }
 
 function renderCategorySection(items, title, type) {
@@ -621,6 +696,9 @@ function bindEvents() {
       setDashboardTab(tab);
       if (tab === "calendar") {
         renderCalendar();
+      }
+      if (tab === "yearly") {
+        renderYearlyReport();
       }
     });
   });
@@ -1238,6 +1316,9 @@ function normalizeSummary(summary) {
   normalized.balance = toNumber(normalized.balance ?? normalized.totalIncome - normalized.totalExpense);
   normalized.trend = Array.isArray(normalized.trend)
     ? normalized.trend.map((item) => ({ ...item, income: toNumber(item.income), expense: toNumber(item.expense) }))
+    : [];
+  normalized.yearlyReport = Array.isArray(normalized.yearlyReport)
+    ? normalized.yearlyReport.map((item) => ({ ...item, income: toNumber(item.income), expense: toNumber(item.expense) }))
     : [];
   normalized.incomeByCategory = Array.isArray(normalized.incomeByCategory)
     ? normalized.incomeByCategory.map((item) => ({ ...item, amount: toNumber(item.amount), percentage: Number(item.percentage || 0), changePercent: item.changePercent == null ? null : Number(item.changePercent) }))
