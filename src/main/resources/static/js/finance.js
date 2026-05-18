@@ -67,6 +67,7 @@ const els = {
   typeButtons: Array.from(document.querySelectorAll(".finance-type-btn")),
   dashboardTabs: Array.from(document.querySelectorAll(".dashboard-tab")),
   dashboardPanels: Array.from(document.querySelectorAll(".dashboard-panel")),
+  darkModeToggle: document.getElementById("dark-mode-toggle"),
   categorySettingsBtn: document.getElementById("category-settings-btn"),
   categoryModal: document.getElementById("category-modal"),
   modalClose: document.getElementById("modal-close"),
@@ -80,6 +81,7 @@ const els = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  applySavedTheme();
   currentTxType = detectInitialType();
   populateCategoryOptions(currentTxType, null);
   syncFixedFieldVisibility();
@@ -709,6 +711,7 @@ function bindEvents() {
   els.filterCategory?.addEventListener("change", () => renderHistory());
   els.filterPayment?.addEventListener("change", () => renderHistory());
   els.sortSelect?.addEventListener("change", () => renderHistory());
+  els.darkModeToggle?.addEventListener("click", toggleDarkMode);
   els.budgetSaveBtn?.addEventListener("click", saveBudget);
   els.budgetList?.addEventListener("click", handleBudgetListClick);
   els.categorySettingsBtn?.addEventListener("click", openCategoryModal);
@@ -1555,6 +1558,43 @@ function renderIcon(iconName, size = 16) {
 function applyLucideIcons() {
   if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
     lucide.createIcons();
+  }
+}
+
+function applySavedTheme() {
+  try {
+    const savedTheme = localStorage.getItem("finance-theme");
+    if (savedTheme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      if (els.darkModeToggle) {
+        els.darkModeToggle.textContent = "☀️";
+      }
+      return;
+    }
+  } catch (error) {
+    console.warn("theme restore failed:", error);
+  }
+
+  document.documentElement.setAttribute("data-theme", "light");
+  if (els.darkModeToggle) {
+    els.darkModeToggle.textContent = "🌙";
+  }
+}
+
+function toggleDarkMode() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute("data-theme") === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  html.setAttribute("data-theme", nextTheme);
+
+  try {
+    localStorage.setItem("finance-theme", nextTheme);
+  } catch (error) {
+    console.warn("theme save failed:", error);
+  }
+
+  if (els.darkModeToggle) {
+    els.darkModeToggle.textContent = isDark ? "🌙" : "☀️";
   }
 }
 

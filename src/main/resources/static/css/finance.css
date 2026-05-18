@@ -1,10 +1,48 @@
+:root {
+    --fin-bg: #f5f6f8;
+    --fin-card-bg: #fff;
+    --fin-card-border: #e8eaed;
+    --fin-text-primary: #1b1d21;
+    --fin-text-secondary: #8b919a;
+    --fin-text-muted: #bec3cb;
+    --fin-hero-bg: #1b1d21;
+    --fin-hero-text: #fff;
+    --fin-input-border: #dfe1e6;
+    --fin-input-bg: #fff;
+    --fin-item-bg: #f8f9fa;
+    --fin-item-hover: #eef0f3;
+    --fin-divider: #f0f1f3;
+    --fin-income: #2d9d5e;
+    --fin-expense: #d94848;
+    --fin-accent: #3b6fd4;
+}
+
+[data-theme="dark"] {
+    --fin-bg: #121317;
+    --fin-card-bg: #1e1f25;
+    --fin-card-border: #2d2e36;
+    --fin-text-primary: #e4e5e9;
+    --fin-text-secondary: #8b8d95;
+    --fin-text-muted: #5a5c64;
+    --fin-hero-bg: #0d0e12;
+    --fin-hero-text: #e4e5e9;
+    --fin-input-border: #3a3b44;
+    --fin-input-bg: #25262e;
+    --fin-item-bg: #25262e;
+    --fin-item-hover: #2d2e38;
+    --fin-divider: #2d2e36;
+    --fin-income: #3dbd6e;
+    --fin-expense: #ef6b6b;
+    --fin-accent: #5b8be6;
+}
+
 .finance-layout {
     display: flex;
     height: calc(100vh - 64px);
     overflow: hidden;
     padding: 20px;
     gap: 16px;
-    background: #f5f6f8;
+    background: var(--fin-bg);
     box-sizing: border-box;
 }
 
@@ -559,8 +597,8 @@
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: #fff;
-    border: 1px solid #e8eaed;
+    background: var(--fin-card-bg);
+    border: 1px solid var(--fin-card-border);
     color: #8b919a;
 }
 
@@ -878,8 +916,8 @@ textarea.form-input {
 .btn-save {
     flex: 1;
     padding: 10px;
-    background: #1b1d21;
-    color: #fff;
+    background: var(--fin-hero-bg);
+    color: var(--fin-hero-text);
     border: none;
     border-radius: 10px;
     font-size: 0.88rem;
@@ -1127,7 +1165,8 @@ textarea.form-input {
     }
 
     .hero-export-btn,
-    .hero-settings-btn {
+    .hero-settings-btn,
+    .hero-darkmode-btn {
         width: 30px;
         height: 30px;
         font-size: 0.9rem;
@@ -1135,6 +1174,10 @@ textarea.form-input {
 
     .hero-export-btn {
         right: 50px;
+    }
+
+    .hero-darkmode-btn {
+        right: 86px;
     }
 
     .budget-meta-row,
@@ -1381,6 +1424,29 @@ textarea.form-input {
     justify-content: center;
 }
 
+.hero-darkmode-btn {
+    position: absolute;
+    top: 14px;
+    right: 94px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-darkmode-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+}
+
 .hero-settings-btn {
     right: 14px;
 }
@@ -1552,4 +1618,296 @@ textarea.form-input {
 .hero-export-btn:hover {
     background: rgba(255,255,255,0.2);
     color: rgba(255,255,255,0.9);
+}
+
+[data-theme="dark"] .summary-card-income {
+    background: rgba(45,157,94,0.1);
+    border-color: rgba(45,157,94,0.2);
+}
+
+[data-theme="dark"] .summary-card-expense {
+    background: rgba(217,72,72,0.1);
+    border-color: rgba(217,72,72,0.2);
+}
+
+[data-theme="dark"] .summary-card-fixed {
+    background: rgba(107,121,148,0.1);
+    border-color: rgba(107,121,148,0.2);
+}
+
+[data-theme="dark"] .summary-card-variable {
+    background: rgba(196,135,10,0.1);
+    border-color: rgba(196,135,10,0.2);
+}
+
+[data-theme="dark"] .summary-card-balance {
+    background: rgba(59,111,212,0.1);
+    border-color: rgba(59,111,212,0.2);
+}
+
+.finance-layout,
+.dashboard-card,
+.finance-panel,
+.modal-card,
+.calendar-day-detail,
+.week-day-col,
+.transaction-item,
+.budget-item,
+.trend-chart,
+.yearly-chart,
+.income-expense-compare {
+    color: var(--fin-text-primary);
+}
+
+.dashboard-card,
+.finance-panel,
+.modal-card,
+.calendar-day-detail {
+    background: var(--fin-card-bg);
+    border-color: var(--fin-card-border);
+}
+
+.dashboard-card,
+.calendar-grid,
+.calendar-day-detail,
+.modal-card {
+    border-color: var(--fin-card-border);
+}
+
+.panel-form-title,
+.card-title,
+.transaction-category,
+.category-name,
+.day-detail-name,
+.modal-header h3,
+.modal-category-item .cat-name,
+.compare-value,
+.compare-balance,
+.yearly-detail-table td,
+.yearly-detail-table td.balance,
+.yearly-detail-table th,
+.week-day-header,
+.summary-value,
+.btn-cancel:hover {
+    color: var(--fin-text-primary);
+}
+
+.panel-form-desc,
+.history-count,
+.summary-label,
+.summary-sub,
+.trend-label,
+.legend-item,
+.analysis-subtitle,
+.category-values,
+.budget-percent,
+.budget-meta-row,
+.compare-label,
+.yearly-label,
+.calendar-header,
+.calendar-day-detail h4,
+.day-detail-memo,
+.day-detail-empty,
+.week-summary,
+.modal-section h4,
+.modal-close-btn,
+.empty-state,
+.calendar-day-detail .detail-toggle-btn,
+.finance-page-kicker {
+    color: var(--fin-text-secondary);
+}
+
+.dashboard-tab-bar,
+.analysis-section,
+.yearly-detail-table th,
+.yearly-detail-table tfoot td,
+.week-day-header,
+.week-day-total,
+.calendar-header,
+.calendar-cell,
+.day-detail-item {
+    border-color: var(--fin-divider);
+}
+
+.dashboard-tab.active,
+.day-balance,
+.compare-balance,
+.category-bar-fill,
+.chart-bar-fill,
+.calendar-day.saturday,
+.change-badge.down,
+.action-btn.copy:hover,
+.cat-move:hover,
+.icon-picker-toggle:hover,
+.icon-option:hover,
+.icon-option.active {
+    color: var(--fin-accent);
+}
+
+.dashboard-tab.active {
+    border-bottom-color: var(--fin-text-primary);
+}
+
+.dashboard-tab,
+.filter-row .form-input,
+.history-filter .form-input,
+.transaction-meta,
+.transaction-icon,
+.category-icon,
+.cat-icon,
+.day-detail-icon {
+    color: var(--fin-text-secondary);
+}
+
+.dashboard-tab:hover:not(.active),
+.btn-cancel,
+.cat-move,
+.icon-picker-toggle,
+.icon-option {
+    color: var(--fin-text-secondary);
+}
+
+.form-input,
+.btn-cancel,
+.transaction-icon,
+.category-icon,
+.icon-picker-toggle,
+.icon-option,
+.cat-move,
+.budget-delete-btn,
+.action-btn,
+.calendar-cell,
+.calendar-header {
+    border-color: var(--fin-input-border);
+}
+
+.form-input,
+.btn-cancel,
+.transaction-icon,
+.category-icon,
+.calendar-cell,
+.calendar-header,
+.modal-category-item,
+.week-day-col,
+.budget-item,
+.income-expense-compare,
+.trend-chart,
+.yearly-chart,
+.icon-picker-toggle,
+.icon-option {
+    background: var(--fin-input-bg);
+}
+
+.form-input,
+.form-input::placeholder,
+.form-input option,
+.btn-cancel,
+.budget-delete-btn,
+.action-btn {
+    color: var(--fin-text-primary);
+}
+
+.form-input::placeholder {
+    color: var(--fin-text-muted);
+}
+
+.form-input:focus {
+    border-color: var(--fin-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--fin-accent) 12%, transparent);
+}
+
+.form-checkbox-input,
+.transaction-item:hover .transaction-actions-row .action-btn.copy:hover {
+    accent-color: var(--fin-accent);
+}
+
+.btn-save {
+    background: var(--fin-hero-bg);
+    color: var(--fin-hero-text);
+}
+
+.btn-save:disabled {
+    background: var(--fin-text-muted);
+}
+
+.transaction-item,
+.budget-item,
+.modal-category-item,
+.calendar-cell,
+.calendar-cell.empty,
+.empty-state,
+.week-day-col {
+    background: var(--fin-item-bg);
+}
+
+.transaction-item:hover,
+.calendar-cell:hover:not(.empty) {
+    background: var(--fin-item-hover);
+}
+
+.calendar-cell.selected {
+    background: color-mix(in srgb, var(--fin-accent) 14%, var(--fin-card-bg));
+    outline: 1.5px solid var(--fin-accent);
+}
+
+.calendar-day {
+    color: var(--fin-text-primary);
+}
+
+.calendar-day.sunday,
+.day-detail-amount.expense,
+.week-day-item.expense,
+.calendar-total.negative,
+.cal-expense,
+.compare-bar-fill.expense,
+.trend-bar.expense,
+.yearly-bar.expense,
+.budget-delete-btn:hover,
+.change-badge.up {
+    color: var(--fin-expense);
+}
+
+.day-income,
+.day-detail-amount.income,
+.week-day-item.income,
+.calendar-total.positive,
+.cal-income,
+.compare-bar-fill.income,
+.trend-bar.income,
+.yearly-bar.income,
+.chart-bar-fill.income {
+    color: var(--fin-income);
+}
+
+.compare-bar-fill.income,
+.trend-bar.income,
+.yearly-bar.income,
+.legend-dot.income {
+    background: var(--fin-income);
+}
+
+.compare-bar-fill.expense,
+.trend-bar.expense,
+.yearly-bar.expense,
+.legend-dot.expense,
+.badge-recurring {
+    background: var(--fin-expense);
+}
+
+.category-bar-fill,
+.chart-bar-fill,
+.legend-dot,
+.badge-recurring,
+.badge-fixed {
+    background: var(--fin-accent);
+}
+
+.badge-fixed {
+    color: var(--fin-text-primary);
+    background: color-mix(in srgb, var(--fin-text-secondary) 18%, transparent);
+}
+
+.badge-recurring {
+    color: var(--fin-hero-text);
+    background: color-mix(in srgb, var(--fin-accent) 18%, transparent);
 }
