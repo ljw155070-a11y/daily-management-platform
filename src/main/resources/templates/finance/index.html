@@ -10,19 +10,19 @@
 <div class="finance-layout">
     <section class="finance-dashboard">
         <div class="finance-hero-card">
-            <a id="finance-export-btn" class="hero-export-btn" th:title="#{finance.export}" th:aria-label="#{finance.export}" th:href="@{/finance/export(year=${year}, month=${month})}">⬇</a>
-            <button type="button" id="dark-mode-toggle" class="hero-darkmode-btn" title="다크모드 전환">🌙</button>
-            <button type="button" id="category-settings-btn" class="hero-settings-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}">⚙</button>
+            <a id="finance-export-btn" class="hero-export-btn" th:title="#{finance.export}" th:aria-label="#{finance.export}" th:href="@{/finance/export(year=${year}, month=${month})}"><i data-lucide="download" style="width:16px;height:16px;"></i></a>
+            <button type="button" id="dark-mode-toggle" class="hero-darkmode-btn" title="다크모드 전환"><i data-lucide="moon" style="width:16px;height:16px;"></i></button>
+            <button type="button" id="category-settings-btn" class="hero-settings-btn" th:title="#{finance.category.manage}" th:aria-label="#{finance.category.manage}"><i data-lucide="settings-2" style="width:16px;height:16px;"></i></button>
             <div>
                 <p class="finance-page-kicker" th:text="#{page.finance.title}">가계 관리</p>
                 <div class="hero-title-row">
-                    <a class="hero-month-btn" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}">◀</a>
+                    <a class="hero-month-btn" th:href="@{/finance(year=${month == 1 ? year - 1 : year}, month=${month == 1 ? 12 : month - 1})}"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></a>
                     <h1 class="finance-page-title">
                         <span th:text="${year}">2026</span>
                         <span class="finance-page-divider">.</span>
                         <span th:text="${#strings.length(month) == 1 ? '0' + month : month}">05</span>
                     </h1>
-                    <a class="hero-month-btn" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}">▶</a>
+                    <a class="hero-month-btn" th:href="@{/finance(year=${month == 12 ? year + 1 : year}, month=${month == 12 ? 1 : month + 1})}"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></a>
                 </div>
             </div>
         </div>
@@ -292,7 +292,7 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 th:text="#{finance.category.manage}">카테고리 관리</h3>
-            <button id="modal-close" class="modal-close-btn" th:aria-label="#{common.cancel}">✕</button>
+            <button id="modal-close" class="modal-close-btn" th:aria-label="#{common.cancel}"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
         </div>
         <div class="modal-body">
             <div class="modal-section">

@@ -795,7 +795,7 @@ function renderHistory() {
       break;
   }
   els.historyList.innerHTML = sorted.map((tx) => {
-    const icon = tx.categoryIcon || "•";
+    const icon = tx.categoryIcon || null;
     const categoryName = tx.categoryName || TEXT.formCategory;
     const note = tx.description || "";
     const amountClass = tx.txType === "INCOME" ? "income" : "expense";
@@ -1261,10 +1261,10 @@ function renderCategoryModalList(catType, container) {
         <span class="cat-icon">${renderIcon(category.icon, 18)}</span>
         <span class="cat-name">${escHtml(category.catName)}</span>
         <div class="cat-order-actions">
-          <button type="button" class="cat-move" data-action="move-up" data-type="${catType}" data-id="${category.id}" ${disableUp}>↑</button>
-          <button type="button" class="cat-move" data-action="move-down" data-type="${catType}" data-id="${category.id}" ${disableDown}>↓</button>
+          <button type="button" class="cat-move" data-action="move-up" data-type="${catType}" data-id="${category.id}" ${disableUp}>${renderSystemIcon("chevron-up", 14)}</button>
+          <button type="button" class="cat-move" data-action="move-down" data-type="${catType}" data-id="${category.id}" ${disableDown}>${renderSystemIcon("chevron-down", 14)}</button>
         </div>
-        <button type="button" class="cat-delete" data-action="delete-category" data-type="${catType}" data-id="${category.id}" ${disableDelete}>✕</button>
+        <button type="button" class="cat-delete" data-action="delete-category" data-type="${catType}" data-id="${category.id}" ${disableDelete}>${renderSystemIcon("x", 14)}</button>
       </div>`;
   }).join("");
 }
@@ -1705,6 +1705,10 @@ function renderIcon(iconName, size = 16) {
   return `<i data-lucide="${escHtml(iconName)}" style="width:${size}px;height:${size}px;"></i>`;
 }
 
+function renderSystemIcon(iconName, size = 16) {
+  return `<i data-lucide="${escHtml(iconName)}" style="width:${size}px;height:${size}px;"></i>`;
+}
+
 function applyLucideIcons() {
   if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
     lucide.createIcons();
@@ -1716,9 +1720,7 @@ function applySavedTheme() {
     const savedTheme = localStorage.getItem("finance-theme");
     if (savedTheme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
-      if (els.darkModeToggle) {
-        els.darkModeToggle.textContent = "☀️";
-      }
+      setDarkModeToggleIcon(true);
       return;
     }
   } catch (error) {
@@ -1726,9 +1728,7 @@ function applySavedTheme() {
   }
 
   document.documentElement.setAttribute("data-theme", "light");
-  if (els.darkModeToggle) {
-    els.darkModeToggle.textContent = "🌙";
-  }
+  setDarkModeToggleIcon(false);
 }
 
 function toggleDarkMode() {
@@ -1743,9 +1743,13 @@ function toggleDarkMode() {
     console.warn("theme save failed:", error);
   }
 
-  if (els.darkModeToggle) {
-    els.darkModeToggle.textContent = isDark ? "🌙" : "☀️";
-  }
+  setDarkModeToggleIcon(!isDark);
+}
+
+function setDarkModeToggleIcon(isDark) {
+  if (!els.darkModeToggle) return;
+  els.darkModeToggle.innerHTML = renderSystemIcon(isDark ? "sun" : "moon", 16);
+  applyLucideIcons();
 }
 
 function formatAmount(amount) {
