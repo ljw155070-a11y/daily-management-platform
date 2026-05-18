@@ -46,6 +46,7 @@ const els = {
   searchInput: document.getElementById("finance-search"),
   filterCategory: document.getElementById("filter-category"),
   filterPayment: document.getElementById("filter-payment"),
+  sortSelect: document.getElementById("sort-transactions"),
   form: document.getElementById("finance-form"),
   editId: document.getElementById("finance-edit-id"),
   category: document.getElementById("finance-category"),
@@ -619,7 +620,28 @@ function renderInsight() {
 function renderHistory() {
   if (!els.historyList) return;
 
-  const sorted = getFilteredTransactions().sort((a, b) => compareTransactions(b, a));
+  const sortValue = els.sortSelect?.value || "date-desc";
+  const sorted = getFilteredTransactions();
+  switch (sortValue) {
+    case "date-desc":
+      sorted.sort((a, b) => compareTransactions(b, a));
+      break;
+    case "date-asc":
+      sorted.sort((a, b) => compareTransactions(a, b));
+      break;
+    case "amount-desc":
+      sorted.sort((a, b) => toNumber(b.amount) - toNumber(a.amount));
+      break;
+    case "amount-asc":
+      sorted.sort((a, b) => toNumber(a.amount) - toNumber(b.amount));
+      break;
+    case "category":
+      sorted.sort((a, b) => (a.categoryName || "").localeCompare(b.categoryName || ""));
+      break;
+    default:
+      sorted.sort((a, b) => compareTransactions(b, a));
+      break;
+  }
   els.historyList.innerHTML = sorted.map((tx) => {
     const icon = tx.categoryIcon || "•";
     const categoryName = tx.categoryName || TEXT.formCategory;
@@ -686,6 +708,7 @@ function bindEvents() {
   els.searchInput?.addEventListener("input", () => renderHistory());
   els.filterCategory?.addEventListener("change", () => renderHistory());
   els.filterPayment?.addEventListener("change", () => renderHistory());
+  els.sortSelect?.addEventListener("change", () => renderHistory());
   els.budgetSaveBtn?.addEventListener("click", saveBudget);
   els.budgetList?.addEventListener("click", handleBudgetListClick);
   els.categorySettingsBtn?.addEventListener("click", openCategoryModal);

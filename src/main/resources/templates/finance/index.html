@@ -237,6 +237,13 @@
                         <option value="TRANSFER" th:text="#{finance.payment.transfer}">계좌이체</option>
                         <option value="OTHER" th:text="#{finance.payment.other}">기타</option>
                     </select>
+                    <select id="sort-transactions" class="form-input" style="font-size:0.78rem; padding:6px 8px; flex:0.7;">
+                        <option value="date-desc" th:text="#{finance.sort.dateDesc}">최신순</option>
+                        <option value="date-asc" th:text="#{finance.sort.dateAsc}">오래된순</option>
+                        <option value="amount-desc" th:text="#{finance.sort.amountDesc}">금액 높은순</option>
+                        <option value="amount-asc" th:text="#{finance.sort.amountAsc}">금액 낮은순</option>
+                        <option value="category" th:text="#{finance.sort.category}">카테고리순</option>
+                    </select>
                 </div>
             </div>
 
