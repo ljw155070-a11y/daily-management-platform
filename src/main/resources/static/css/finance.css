@@ -1593,6 +1593,135 @@ textarea.form-input {
     border-top: 1px solid #f0f1f3;
 }
 
+.donut-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0;
+}
+
+.donut-chart-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donut-chart-container {
+  width: 180px;
+  height: 180px;
+}
+
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.donut-segment {
+  animation: donut-draw 0.8s ease-out forwards;
+  transform-origin: center;
+}
+
+@keyframes donut-draw {
+  from {
+    stroke-dasharray: 0 999;
+  }
+}
+
+.donut-tooltip {
+  position: absolute;
+  padding: 6px 10px;
+  background: var(--fin-text-primary, #1b1d21);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: opacity 0.2s, background 0.15s;
+  cursor: default;
+}
+
+.donut-legend-item:hover {
+  background: var(--fin-item-bg, #f8f9fa);
+}
+
+.donut-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.donut-legend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fin-text-primary, #1b1d21);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.donut-legend-amount {
+  color: var(--fin-text-primary, #1b1d21);
+  font-weight: 600;
+  font-size: 0.76rem;
+  min-width: 70px;
+  text-align: right;
+}
+
+.donut-legend-pct {
+  color: var(--fin-text-secondary, #8b919a);
+  font-weight: 500;
+  font-size: 0.72rem;
+  min-width: 36px;
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .donut-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .donut-chart-container {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+  }
+
+  .donut-legend-item {
+    padding: 5px 6px;
+    font-size: 0.74rem;
+  }
+
+  .donut-legend-amount {
+    min-width: 60px;
+  }
+}
+
 .analysis-section:first-child {
     padding-top: 0;
     border-top: none;

@@ -29,6 +29,8 @@ const els = {
   summaryBalance: document.getElementById("summary-balance"),
   insight: document.getElementById("finance-insight"),
   trendChart: document.getElementById("trend-chart"),
+  donutChart: document.getElementById("donut-chart"),
+  donutLegend: document.getElementById("donut-legend"),
   chartList: document.getElementById("category-chart-list"),
   chartEmpty: document.getElementById("category-chart-empty"),
   budgetList: document.getElementById("budget-list"),
@@ -98,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function renderAll() {
   renderSummary();
   renderTrendChart();
+  renderDonutChart();
   renderCategoryChart();
   renderBudgetBars();
   renderCalendar();
@@ -150,6 +153,153 @@ function renderTrendChart() {
       <span class="legend-item"><span class="legend-dot income"></span>${escHtml(TEXT.summaryIncome)}</span>
       <span class="legend-item"><span class="legend-dot expense"></span>${escHtml(TEXT.summaryExpense)}</span>
     </div>`;
+}
+
+function renderDonutChart() {
+  const container = els.donutChart;
+  const legend = els.donutLegend;
+  if (!container) return;
+
+  const items = (summaryState.expenseByCategory || []).filter((item) => toNumber(item.amount) > 0);
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="min-height:60px">지출 데이터가 없습니다</div>';
+    if (legend) {
+      legend.innerHTML = "";
+    }
+    return;
+  }
+
+  const total = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
+  const colors = [
+    "#3b6fd4", "#2d9d5e", "#e67e22", "#9b59b6", "#d94848",
+    "#1abc9c", "#e84393", "#f39c12", "#6b7994", "#00b894",
+    "#fd79a8", "#636e72",
+  ];
+
+  const r = 70;
+  const circumference = 2 * Math.PI * r;
+  const gapSize = items.length > 1 ? 3 : 0;
+  const totalGap = gapSize * items.length;
+  const availableLength = circumference - totalGap;
+
+  let accumulatedOffset = 0;
+  const segments = items.map((item, idx) => {
+    const percent = toNumber(item.amount) / total;
+    const segmentLength = availableLength * percent;
+    const dasharray = `${segmentLength} ${circumference - segmentLength}`;
+    const dashoffset = -(accumulatedOffset + (gapSize * idx));
+    accumulatedOffset += segmentLength;
+    return {
+      item,
+      color: colors[idx % colors.length],
+      dasharray,
+      dashoffset,
+      percent,
+    };
+  });
+
+  const centerAmount = formatAmount(total);
+  container.innerHTML = `
+    <svg viewBox="0 0 200 200" class="donut-svg" aria-label="카테고리별 지출 도넛 차트">
+      <circle cx="100" cy="100" r="${r}" fill="none" stroke="var(--fin-divider, #f0f1f3)" stroke-width="22"></circle>
+      ${segments.map((seg, idx) => `
+        <circle class="donut-segment" data-index="${idx}"
+          cx="100" cy="100" r="${r}"
+          fill="none"
+          stroke="${seg.color}"
+          stroke-width="22"
+          stroke-dasharray="${seg.dasharray}"
+          stroke-dashoffset="${seg.dashoffset}"
+          stroke-linecap="butt"
+          transform="rotate(-90 100 100)"
+          style="transition: stroke-width 0.2s, opacity 0.2s; cursor:pointer;"
+        ></circle>
+      `).join("")}
+      <text x="100" y="92" text-anchor="middle"
+        style="font-size:0.55rem; fill:var(--fin-text-secondary, #8b919a); font-weight:500;">
+        총 지출
+      </text>
+      <text x="100" y="110" text-anchor="middle"
+        style="font-size:0.75rem; fill:var(--fin-text-primary, #1b1d21); font-weight:700;">
+        ${escHtml(centerAmount)}
+      </text>
+    </svg>
+    <div id="donut-tooltip" class="donut-tooltip" style="display:none;"></div>
+  `;
+
+  if (legend) {
+    legend.innerHTML = segments.map((seg, idx) => {
+      const pct = (seg.percent * 100).toFixed(1);
+      return `
+        <div class="donut-legend-item" data-index="${idx}">
+          <span class="donut-dot" style="background:${seg.color}"></span>
+          <span class="donut-legend-name">${renderIcon(seg.item.icon, 14)} ${escHtml(seg.item.categoryName || "")}</span>
+          <span class="donut-legend-amount">${formatAmount(seg.item.amount)}</span>
+          <span class="donut-legend-pct">${pct}%</span>
+        </div>`;
+    }).join("");
+  }
+
+  const svgTexts = container.querySelectorAll(".donut-svg text");
+  const resetDonutState = () => {
+    container.querySelectorAll(".donut-segment").forEach((seg) => {
+      seg.style.opacity = "1";
+      seg.setAttribute("stroke-width", "22");
+    });
+    legend?.querySelectorAll(".donut-legend-item").forEach((item) => {
+      item.style.opacity = "1";
+    });
+    if (svgTexts.length >= 2) {
+      svgTexts[0].textContent = "총 지출";
+      svgTexts[1].textContent = centerAmount;
+    }
+  };
+
+  container.querySelectorAll(".donut-segment").forEach((segment) => {
+    segment.addEventListener("mouseenter", (event) => {
+      const idx = Number(event.currentTarget.dataset.index);
+      const seg = segments[idx];
+      if (!seg) return;
+
+      event.currentTarget.setAttribute("stroke-width", "26");
+      container.querySelectorAll(".donut-segment").forEach((other, otherIdx) => {
+        if (otherIdx !== idx) {
+          other.style.opacity = "0.35";
+        }
+      });
+      legend?.querySelectorAll(".donut-legend-item").forEach((item, itemIdx) => {
+        item.style.opacity = itemIdx === idx ? "1" : "0.35";
+      });
+      if (svgTexts.length >= 2) {
+        svgTexts[0].textContent = seg.item.categoryName || "";
+        svgTexts[1].textContent = formatAmount(seg.item.amount);
+      }
+    });
+
+    segment.addEventListener("mouseleave", resetDonutState);
+  });
+
+  legend?.querySelectorAll(".donut-legend-item").forEach((item) => {
+    item.addEventListener("mouseenter", () => {
+      const idx = Number(item.dataset.index);
+      const seg = segments[idx];
+      if (!seg) return;
+
+      container.querySelectorAll(".donut-segment").forEach((segment, segIdx) => {
+        segment.style.opacity = segIdx === idx ? "1" : "0.35";
+        segment.setAttribute("stroke-width", segIdx === idx ? "26" : "22");
+      });
+      legend.querySelectorAll(".donut-legend-item").forEach((other, otherIdx) => {
+        other.style.opacity = otherIdx === idx ? "1" : "0.35";
+      });
+      if (svgTexts.length >= 2) {
+        svgTexts[0].textContent = seg.item.categoryName || "";
+        svgTexts[1].textContent = formatAmount(seg.item.amount);
+      }
+    });
+
+    item.addEventListener("mouseleave", resetDonutState);
+  });
 }
 
 function renderCategoryChart() {

@@ -71,6 +71,13 @@
                     <div id="trend-chart" class="trend-chart"></div>
                 </div>
                 <div class="section-divider"></div>
+                <div class="donut-section">
+                    <div class="donut-chart-wrapper">
+                        <div id="donut-chart" class="donut-chart-container"></div>
+                    </div>
+                    <div id="donut-legend" class="donut-legend"></div>
+                </div>
+                <div class="section-divider"></div>
                 <div id="category-chart-list" class="category-chart-list chart-section">
                     <div class="category-chart-item" th:each="item : ${summary.expenseByCategory()}">
                         <div class="category-chart-top">
